@@ -12,24 +12,24 @@ interface AttackerRoster {
   name: string;
   team: string;
   /** Historical hint; the actual level is recomputed from the verified count. */
-  level: "ADMIN" | "LEGEND" | "ELITE" | "PRO" | "ROOKIE";
+  level: "LEGEND" | "ELITE" | "PRO" | "ROOKIE";
   weight: number;
 }
 
 const ROSTER: AttackerRoster[] = [
-  { name: "GadaLuBau", team: "SonicNetwork", level: "LEGEND", weight: 25 },
-  { name: "1ND0TR0J4N X", team: "Hacker Patah Hati", level: "LEGEND", weight: 18 },
-  { name: "EbRaHiM-VaKeR", team: "LegioN_LeakeRs", level: "ELITE", weight: 8 },
-  { name: "sam", team: "MouseExploitSec", level: "ADMIN", weight: 6 },
-  { name: "LungzzX", team: "LungzzX", level: "PRO", weight: 6 },
-  { name: "0x6ick", team: "6ickzone", level: "PRO", weight: 5 },
-  { name: "Euphoria", team: "SABUN BOLONG CYBER CLUB", level: "ROOKIE", weight: 4 },
-  { name: "BULLYXPLOIT", team: "dkv blackhat", level: "ROOKIE", weight: 3 },
-  { name: "Antonkill", team: "syshack", level: "ROOKIE", weight: 3 },
-  { name: "MR RYUZAKI EXCLUSV", team: "AKUDAMA SYNDICATE TEAM", level: "ROOKIE", weight: 2 },
-  { name: "Outsiders", team: "AnonSec Team", level: "ROOKIE", weight: 2 },
-  { name: "Irene", team: "XmrAnonye.id", level: "ROOKIE", weight: 2 },
-  { name: "XploiterX", team: "NullSec", level: "ROOKIE", weight: 1 },
+  { name: "GadaLuBau", team: "SonicNetwork", level: "PRO", weight: 130 },
+  { name: "1ND0TR0J4N X", team: "Hacker Patah Hati", level: "ELITE", weight: 50 },
+  { name: "EbRaHiM-VaKeR", team: "LegioN_LeakeRs", level: "ELITE", weight: 20 },
+  { name: "sam", team: "MouseExploitSec", level: "ELITE", weight: 15 },
+  { name: "LungzzX", team: "LungzzX", level: "ROOKIE", weight: 10 },
+  { name: "0x6ick", team: "6ickzone", level: "ROOKIE", weight: 8 },
+  { name: "Euphoria", team: "SABUN BOLONG CYBER CLUB", level: "ROOKIE", weight: 6 },
+  { name: "BULLYXPLOIT", team: "dkv blackhat", level: "ROOKIE", weight: 5 },
+  { name: "Antonkill", team: "syshack", level: "ROOKIE", weight: 4 },
+  { name: "MR RYUZAKI EXCLUSV", team: "AKUDAMA SYNDICATE TEAM", level: "ROOKIE", weight: 3 },
+  { name: "Outsiders", team: "AnonSec Team", level: "ROOKIE", weight: 3 },
+  { name: "Irene", team: "XmrAnonye.id", level: "ROOKIE", weight: 3 },
+  { name: "XploiterX", team: "NullSec", level: "ROOKIE", weight: 2 },
   { name: "DarkShadow", team: "Ghost Crew", level: "ROOKIE", weight: 1 },
 ];
 
@@ -64,6 +64,51 @@ const DOMAINS = [
   "rnd.go.id",
   "data.go.id",
   "smkn1malang.sch.id",
+  "sman8jakarta.sch.id",
+  "sman2bandung.sch.id",
+  "smpn5bandung.sch.id",
+  "unair.ac.id",
+  "ugm.ac.id",
+  "ui.ac.id",
+  "itb.ac.id",
+  "unpad.ac.id",
+  "uns.ac.id",
+  "undip.ac.id",
+  "unnes.ac.id",
+  "sttnf.ac.id",
+  "binus.ac.id",
+  "uph.ac.id",
+  "president.ac.id",
+  "pradita.ac.id",
+  "nusamandiri.ac.id",
+  "polsri.ac.id",
+  "polban.ac.id",
+  "polines.ac.id",
+  "pnj.ac.id",
+  "polije.ac.id",
+  "disdik.go.id",
+  "dinkes.go.id",
+  "bappeda.go.id",
+  "setda.go.id",
+  "bps.go.id",
+  "bnn.go.id",
+  "kominfo.go.id",
+  "kkp.go.id",
+  "pertanian.go.id",
+  "perhubungan.go.id",
+  "pu.go.id",
+  "kemenag.go.id",
+  "kemenkes.go.id",
+  "edu.gov.vn",
+  "moe.gov.th",
+  "mod.gov.th",
+  "gov.in",
+  "nic.in",
+  "gov.ph",
+  "gov.my",
+  "gov.sg",
+  "gov.uk",
+  "usa.gov",
 ];
 
 const URL_PATHS = ["", "/", "/index.html", "/hacked.html", "/eu.html", "/home.html", "/portal/"];
@@ -153,19 +198,19 @@ export async function seedIfEmpty(): Promise<void> {
   const count = await db.defacement.count();
   if (count > 0) return;
 
-  const TOTAL = 60;
+  const TOTAL = 260;
   const now = Date.now();
   const minute = 60 * 1000;
   const hour = 60 * minute;
   const day = 24 * hour;
 
-  // Generate capturedAt timestamps spread over the last 5 days, newest = now - few minutes.
+  // Generate capturedAt timestamps spread over the last 30 days, newest = now - few minutes.
   // Several must fall on "today".
   const capturedAts: Date[] = [];
   for (let i = 0; i < TOTAL; i++) {
-    // Bias toward more recent (today) by using a power curve.
+    // Bias toward more recent by using a power curve.
     const t = Math.pow(Math.random(), 1.7); // 0..1, biased toward 0 (recent)
-    const offset = t * 5 * day; // up to 5 days ago
+    const offset = t * 30 * day; // up to 30 days ago
     capturedAts.push(new Date(now - offset - Math.floor(Math.random() * 30 * minute)));
   }
   // Ensure the most recent is just a few minutes ago.

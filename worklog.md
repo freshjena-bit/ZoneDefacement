@@ -394,3 +394,63 @@ Stage Summary:
   rank view.
 - Self-healing: the stats endpoint recomputes on each load (no-op write when already correct), so
   any drift from older data is automatically fixed.
+
+---
+Task ID: 11
+Agent: main (orchestrator)
+Task: New level tiers (remove ADMIN) + URL-based navigation for all views.
+
+User requirements:
+- New level thresholds by verified count: ROOKIE 0-10, ELITE 11-100, PRO 101-1000, LEGEND 1001+ (terminal).
+- Remove ADMIN level entirely.
+- URL-based navigation: rank attacker → /leaderboard/attacker, team → /leaderboard/team, notify → /notify, and all others likewise (archive, onhold, special, report/:id). URLs must work on direct access/refresh.
+
+Work Log:
+1. Level tiers (src/lib/level.ts):
+   - Removed ADMIN entirely. ReporterLevel = "LEGEND" | "PRO" | "ELITE" | "ROOKIE".
+   - New thresholds: LEGEND ≥ 1001, PRO ≥ 101, ELITE ≥ 11, ROOKIE < 11.
+   - Removed ADMIN_HANDLES override (sam is now a normal reporter leveled by count).
+   - Updated ReporterLevel type + level-badge.tsx (removed ADMIN style entry).
+2. Seed scale-up (src/lib/seed.ts):
+   - TOTAL 60 → 260 records; expanded domain pool to ~80 (more .go.id/.ac.id/.gov.* hosts).
+   - Retuned roster weights so GadaLuBau ~130 (→ PRO), 1ND0TR0J4N X ~50, EbRaHiM-VaKeR ~20,
+     sam ~15, LungzzX ~12 (→ ELITE), rest ROOKIE. Timestamps spread over 30 days.
+   - recomputeAllLevels() at end derives real levels from verified counts.
+3. URL routing (single-route SPA pattern):
+   - next.config.ts: added rewrites() mapping /leaderboard/:type(attacker|team), /notify, /archive,
+     /onhold, /special, /report/:id → / (so deep links resolve to the app shell).
+   - src/lib/router.ts: pathToView() + viewToPath() helpers (RouteState with name/defacementId/
+     filter/tab/action).
+   - page.tsx: useState initialises to home (SSR + first client render match → no hydration
+     mismatch); a one-shot mount effect reads window.location.pathname and switches to the real
+     view. navigate() does history.pushState + setView + scroll-to-top. popstate listener handles
+     back/forward. RankView keyed by tab so tab switches via URL and back-button sync correctly.
+   - NotifyDialog open state derived from view (open iff route action === "notify", i.e. URL=/notify);
+     closing replaces URL back to /.
+4. RankView: accepts initialTab + onTabChange; tab switch calls navigate({name:"rank",tab}) so
+   /leaderboard/attacker ↔ /leaderboard/team are both addressable and back-button works.
+
+Agent Browser verification (fresh sessions, 0 errors on every route):
+- /                         → home (GadaLuBau PRO, 1ND0TR0J4N X ELITE, sam ELITE [no ADMIN!], 0x6ick ROOKIE)
+- /archive                  → archive (all)
+- /onhold                   → archive, On Hold tab selected
+- /special                  → archive, type=special
+- /notify                   → home + Notify dialog open
+- /leaderboard/attacker     → rank, Attacker tab selected
+- /leaderboard/team         → rank, Team tab selected
+- /report/:id               → mirror view (renders defacement)
+- In-app nav updates the URL (pushState): clicking Attacker Rank → /leaderboard/attacker;
+  switching to Team tab → /leaderboard/team; clicking a mirror → /report/:id.
+- Back button: /leaderboard/team → back → /leaderboard/attacker with Attacker tab correctly selected.
+- No hydration errors (fixed by SSR-safe home initial state + mount-effect URL sync).
+- Lint: 0 errors. Console: clean. Dev log: clean.
+
+Stage Summary:
+- Level tiers now: ROOKIE (0-10) → ELITE (11-100) → PRO (101-1000) → LEGEND (1001+). ADMIN removed.
+  sam is now ELITE (14 verified) instead of ADMIN.
+- Seeded 260 records → 226 verified, 73 unique hosts, 12 reporters. Levels: 1×PRO (GadaLuBau),
+  4×ELITE, 7×ROOKIE, 0×LEGEND (correct — nobody reached 1001+).
+- All views are URL-addressable and work on direct access / refresh / back-forward:
+    /  /notify  /archive  /onhold  /special  /leaderboard/attacker  /leaderboard/team  /report/:id
+- Implemented via next.config.ts rewrites (paths → /) + client-side History API; single Next.js
+  route at / preserved.

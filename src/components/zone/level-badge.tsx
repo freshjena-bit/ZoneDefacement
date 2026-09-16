@@ -4,10 +4,9 @@ import { cn } from "@/lib/utils";
 import type { ReporterLevel } from "./types";
 
 const LEVEL_STYLES: Record<ReporterLevel, string> = {
-  ADMIN: "bg-red-600 text-white border-red-700",
   LEGEND: "bg-amber-500 text-white border-amber-600",
-  ELITE: "bg-emerald-600 text-white border-emerald-700",
   PRO: "bg-orange-500 text-white border-orange-600",
+  ELITE: "bg-emerald-600 text-white border-emerald-700",
   ROOKIE:
     "bg-transparent text-stone-500 dark:text-stone-400 border-stone-300 dark:border-stone-700",
 };

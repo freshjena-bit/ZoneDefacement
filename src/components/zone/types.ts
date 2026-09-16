@@ -1,6 +1,6 @@
 // Shared types for the SAM1337 defacement mirror archive UI.
 
-export type ReporterLevel = "ADMIN" | "LEGEND" | "ELITE" | "PRO" | "ROOKIE";
+export type ReporterLevel = "LEGEND" | "PRO" | "ELITE" | "ROOKIE";
 export type DefacementStatus = "approved" | "onhold";
 
 /** A defacement row returned from list endpoints (no `mirrorHtml`). */
@@ -50,6 +50,10 @@ export interface ViewState {
   defacementId?: string;
   /** Optional pre-applied filter for the archive view (e.g. attacker/team/special). */
   filter?: ArchiveFilter;
+  /** Rank-view tab. */
+  tab?: "attacker" | "team";
+  /** Extra UI hint, e.g. "open the notify dialog" on the home view. */
+  action?: "notify";
 }
 
 export interface ArchiveFilter {

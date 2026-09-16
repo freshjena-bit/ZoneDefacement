@@ -10,13 +10,25 @@ import { useStats } from "./hooks";
 import type { ReporterLevel } from "./types";
 
 interface RankViewProps {
+  /** Initial tab, derived from the URL (/leaderboard/attacker|team). */
+  initialTab?: "attacker" | "team";
+  /** Fired when the user switches tabs so the URL can be updated. */
+  onTabChange?: (tab: "attacker" | "team") => void;
   onBack: () => void;
   onPickAttacker: (name: string) => void;
   onPickTeam: (name: string) => void;
 }
 
-export function RankView({ onBack, onPickAttacker, onPickTeam }: RankViewProps) {
-  const [tab, setTab] = useState<"attackers" | "teams">("attackers");
+export function RankView({
+  initialTab = "attacker",
+  onTabChange,
+  onBack,
+  onPickAttacker,
+  onPickTeam,
+}: RankViewProps) {
+  const [tab, setTab] = useState<"attackers" | "teams">(
+    initialTab === "team" ? "teams" : "attackers",
+  );
   const statsQ = useStats();
 
   const attackers = statsQ.data?.rankings.attackers ?? [];
@@ -40,7 +52,15 @@ export function RankView({ onBack, onPickAttacker, onPickTeam }: RankViewProps) 
         </h1>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mt-4">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => {
+          const next = v as "attackers" | "teams";
+          setTab(next);
+          onTabChange?.(next === "teams" ? "team" : "attacker");
+        }}
+        className="mt-4"
+      >
         <TabsList>
           <TabsTrigger value="attackers" className="gap-1.5">
             <Trophy className="size-3.5" /> Attacker Rank

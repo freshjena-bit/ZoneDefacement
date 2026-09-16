@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Topbar } from "@/components/zone/topbar";
 import { HomeView } from "@/components/zone/home-view";
 import { ArchiveView } from "@/components/zone/archive-view";
@@ -9,32 +9,79 @@ import { MirrorView } from "@/components/zone/mirror-view";
 import { NotifyDialog } from "@/components/zone/notify-dialog";
 import { SiteFooter } from "@/components/zone/site-footer";
 import type { ArchiveFilter, ViewState } from "@/components/zone/types";
+import { pathToView, viewToPath, type RouteState } from "@/lib/router";
 
 export default function Home() {
+  // Initialise to the home view for BOTH the server render and the first
+  // client render so hydration matches. After mount, a one-shot effect reads
+  // the real URL pathname (deep link) and switches to the correct view.
   const [view, setView] = useState<ViewState>({ name: "home" });
-  const [notifyOpen, setNotifyOpen] = useState(false);
   const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
   const statsRef = useRef<HTMLDivElement | null>(null);
   const contactRef = useRef<HTMLDivElement | null>(null);
 
+  // The Notify dialog is open iff the current route is the home view with the
+  // `notify` action (i.e. URL = /notify). Derived from view, not separate
+  // state, so it stays in sync with the URL.
+  const notifyOpen = view.name === "home" && view.action === "notify";
+
+  // One-shot: sync the view to the current URL pathname on first mount (so
+  // deep links / refresh land on the right view) without breaking SSR
+  // hydration (server + first client render both start at home).
+  useEffect(() => {
+    const route = pathToView(window.location.pathname);
+    // One-time client-only route initialisation: the URL is an external
+    // system we're bootstrapping the view from. Runs once on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setView(routeToViewState(route));
+  }, []);
+
+  /** Push a new route to the URL bar (replaces state for same-path tweaks). */
+  const navigate = useCallback((route: RouteState, replace = false) => {
+    const path = viewToPath(route);
+    if (typeof window !== "undefined" && path !== window.location.pathname) {
+      if (replace) {
+        window.history.replaceState(route, "", path);
+      } else {
+        window.history.pushState(route, "", path);
+      }
+    }
+    setView(routeToViewState(route));
+    // Scroll to top on every navigation.
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, []);
+
+  // Respond to browser back/forward.
+  useEffect(() => {
+    function onPop() {
+      const route = pathToView(window.location.pathname);
+      setView(routeToViewState(route));
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   function goHome() {
-    setView({ name: "home" });
-    scrollToTop();
+    navigate({ name: "home" });
   }
 
   function goArchive(filter?: ArchiveFilter) {
-    setView({ name: "archive", filter });
-    scrollToTop();
+    if (filter?.status === "onhold") navigate({ name: "archive", filter });
+    else if (filter?.type === "special") navigate({ name: "archive", filter });
+    else navigate({ name: "archive", filter });
   }
 
-  function goRank() {
-    setView({ name: "rank" });
-    scrollToTop();
+  function goRank(tab: "attacker" | "team" = "attacker") {
+    navigate({ name: "rank", tab });
   }
 
   function goMirror(id: string) {
-    setView({ name: "mirror", defacementId: id });
-    scrollToTop();
+    navigate({ name: "mirror", defacementId: id });
   }
 
   function handleSearch(q: string) {
@@ -50,26 +97,25 @@ export default function Home() {
   }
 
   function handleNavigate(
-    target:
-      | "home"
-      | "archive"
-      | "rank"
-      | "mirror",
-    extra?: { filter?: "onhold" | "special"; action?: "notify" | "stats" | "contact" },
+    target: "home" | "archive" | "rank" | "mirror",
+    extra?: {
+      filter?: "onhold" | "special";
+      action?: "notify" | "stats" | "contact";
+    },
   ) {
     if (extra?.action === "notify") {
-      setNotifyOpen(true);
+      navigate({ name: "home", action: "notify" });
       return;
     }
     if (extra?.action === "stats") {
-      setView({ name: "home" });
+      navigate({ name: "home" });
       setTimeout(() => {
         statsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 60);
       return;
     }
     if (extra?.action === "contact") {
-      setView({ name: "home" });
+      navigate({ name: "home" });
       setTimeout(() => {
         contactRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 60);
@@ -100,12 +146,6 @@ export default function Home() {
     }
   }
 
-  function scrollToTop() {
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "auto" });
-    }
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
       <Topbar onSearch={handleSearch} onNavigate={handleNavigate} />
@@ -118,7 +158,7 @@ export default function Home() {
             onMirror={goMirror}
             onPickAttacker={handlePickAttacker}
             onPickTeam={handlePickTeam}
-            onNotify={() => setNotifyOpen(true)}
+            onNotify={() => navigate({ name: "home", action: "notify" })}
             statsRef={statsRef}
             contactRef={contactRef}
           />
@@ -138,6 +178,13 @@ export default function Home() {
 
         {view.name === "rank" && (
           <RankView
+            key={view.tab ?? "attacker"}
+            initialTab={view.tab ?? "attacker"}
+            onTabChange={(tab) => {
+              // Switching the rank tab updates the URL via pushState so each
+              // tab is addressable (/leaderboard/attacker | /leaderboard/team).
+              navigate({ name: "rank", tab });
+            }}
             onBack={goHome}
             onPickAttacker={handlePickAttacker}
             onPickTeam={handlePickTeam}
@@ -155,22 +202,35 @@ export default function Home() {
 
       <SiteFooter />
 
-      {/* Global Notify dialog (triggered from nav or home CTA) */}
+      {/* Global Notify dialog (triggered via the /notify URL or nav button) */}
       <NotifyDialog
         open={notifyOpen}
-        onOpenChange={setNotifyOpen}
-        onSubmitted={() => {
-          // Bump archive refresh key + switch to archive on-hold view if user
-          // is currently on the archive view.
-          setArchiveRefreshKey((k) => k + 1);
-          if (view.name === "archive") {
-            setView({
-              name: "archive",
-              filter: { status: "onhold" },
-            });
+        onOpenChange={(open) => {
+          // Closing the dialog normalises the URL back to home (/). Opening is
+          // handled by navigating to /notify elsewhere.
+          if (!open && notifyOpen) {
+            navigate({ name: "home" }, true);
           }
+        }}
+        onSubmitted={() => {
+          setArchiveRefreshKey((k) => k + 1);
+          // Switch to the on-hold archive view so the user sees their new
+          // submission pending review.
+          navigate({ name: "archive", filter: { status: "onhold" } });
         }}
       />
     </div>
   );
+}
+
+/** Convert a RouteState (router) into the ViewState used by the UI layer. */
+function routeToViewState(route: RouteState): ViewState {
+  return {
+    name: route.name,
+    defacementId: route.defacementId,
+    filter: route.filter,
+    // `action` and `tab` are ViewState-extended via casting; ViewState already
+    // allows extra fields through its union, but we keep them for typing.
+    ...({ action: route.action, tab: route.tab } as Partial<ViewState>),
+  };
 }

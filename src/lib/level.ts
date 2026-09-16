@@ -3,38 +3,30 @@ import { db } from "@/lib/db";
 /**
  * Reporter level logic for the SAM1337 archive.
  *
- * A reporter's level (ROOKIE → PRO → ELITE → LEGEND) is derived from the
- * number of **verified (approved)** defacements they have in the archive.
- * On-hold / pending submissions do NOT count toward the level — only
- * accepted, verified mirrors do.
+ * A reporter's level is derived purely from the number of VERIFIED (approved)
+ * defacements they have in the archive. On-hold / pending submissions do NOT
+ * count toward the level — only accepted, verified mirrors do.
  *
- * ADMIN is a staff override for the archive operator and is independent of
- * the verified count.
+ * Tiers (by verified count):
+ *   ROOKIE   0 – 10
+ *   ELITE    11 – 100
+ *   PRO      101 – 1000
+ *   LEGEND   1001+   (terminal / maxed-out level)
  */
 
-export type ReporterLevel = "ADMIN" | "LEGEND" | "ELITE" | "PRO" | "ROOKIE";
-
-// Staff handles — always ADMIN regardless of their verified count.
-const ADMIN_HANDLES = new Set(["sam"]);
+export type ReporterLevel = "LEGEND" | "PRO" | "ELITE" | "ROOKIE";
 
 // Level thresholds based on the count of VERIFIED (approved) defacements.
-//   LEGEND  ≥ 15 verified
-//   ELITE   ≥ 7  verified
-//   PRO     ≥ 3  verified
-//   ROOKIE  < 3  verified
+// Ordered highest-first so the first match wins.
 const LEVEL_THRESHOLDS: Array<{ level: ReporterLevel; min: number }> = [
-  { level: "LEGEND", min: 15 },
-  { level: "ELITE", min: 7 },
-  { level: "PRO", min: 3 },
+  { level: "LEGEND", min: 1001 },
+  { level: "PRO", min: 101 },
+  { level: "ELITE", min: 11 },
   { level: "ROOKIE", min: 0 },
 ];
 
 /** Compute the reporter level for an attacker given their verified count. */
-export function levelForVerifiedCount(
-  verifiedCount: number,
-  attacker: string,
-): ReporterLevel {
-  if (ADMIN_HANDLES.has(attacker.toLowerCase())) return "ADMIN";
+export function levelForVerifiedCount(verifiedCount: number): ReporterLevel {
   for (const t of LEVEL_THRESHOLDS) {
     if (verifiedCount >= t.min) return t.level;
   }
@@ -57,7 +49,7 @@ export async function recomputeAttackerLevel(
   const verifiedCount = await db.defacement.count({
     where: { attacker, status: "approved" },
   });
-  const level = levelForVerifiedCount(verifiedCount, attacker);
+  const level = levelForVerifiedCount(verifiedCount);
 
   // Cheap current-level probe — skip the write when nothing changed.
   const current = await db.defacement.findFirst({
