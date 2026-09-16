@@ -57,3 +57,8 @@ prompt
 server.log
 # Skills directory
 /skills/
+# agent / temp artifacts
+/tool-results/
+/upload/
+/worklog.md
+/.zscripts/dev.pid
