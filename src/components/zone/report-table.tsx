@@ -6,7 +6,6 @@ import {
   RefreshCw,
   Star,
   Monitor,
-  ExternalLink,
   Check,
   X,
   Loader2,
@@ -166,8 +165,9 @@ export function ReportTable({
 
   return (
     <>
-      {/* Desktop / tablet: traditional table with horizontal scroll */}
-      <div className="hidden w-full overflow-x-auto thin-scrollbar md:block">
+      {/* Single table layout for ALL screen sizes — horizontally scrollable
+          so mobile users can swipe to see every column (matches zone-sam1337). */}
+      <div className="w-full overflow-x-auto thin-scrollbar">
         <table className="w-full min-w-[920px] border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-stone-100 dark:bg-stone-900">
             <tr className="border-b border-stone-200 dark:border-stone-800">
@@ -335,151 +335,6 @@ export function ReportTable({
         </table>
       </div>
 
-      {/* Mobile: stacked card layout using data-label */}
-      <div className="md:hidden">
-        {isLoading &&
-          Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={`msk-${i}`}
-              className="mb-2 rounded-md border border-stone-200 p-3 dark:border-stone-800"
-            >
-              <div className="h-3 w-2/3 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
-              <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />
-            </div>
-          ))}
-        {!isLoading && rows.length === 0 && (
-          <p className="py-8 text-center text-sm text-stone-400">
-            No defacements found.
-          </p>
-        )}
-        {!isLoading &&
-          rows.map((r) => (
-            <div
-              key={r.id}
-              className="mb-2 rounded-md border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <button
-                    onClick={() => onPickAttacker?.(r.attacker)}
-                    className="truncate text-sm font-semibold text-red-600 hover:underline dark:text-red-400"
-                  >
-                    {r.attacker}
-                  </button>
-                  <LevelBadge level={r.reporterLevel} />
-                </div>
-                <span
-                  className="shrink-0 font-mono text-[10px] tabular-nums text-stone-400"
-                  title={fullDate(r.capturedAt)}
-                >
-                  {timeOnly(r.capturedAt)}
-                </span>
-              </div>
-
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                <div className="col-span-2 flex items-center justify-between">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">Team</dt>
-                  <dd className="truncate text-right text-stone-600 dark:text-stone-300">
-                    {r.team ?? "—"}
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">H</dt>
-                  <dd>
-                    <TypeChip active={r.isHome} icon={HomeIcon} title="Homepage defacement" />
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">M</dt>
-                  <dd>
-                    <TypeChip active={r.isMass} icon={Layers} title="Mass defacement" />
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">R</dt>
-                  <dd>
-                    <TypeChip active={r.isRedeface} icon={RefreshCw} title="Redeface" />
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">S</dt>
-                  <dd>
-                    <TypeChip active={r.isSpecial} icon={Star} title="Special report" />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">Loc</dt>
-                  <dd>
-                    <FlagCell cc={r.countryCode} />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="font-mono text-[10px] uppercase text-stone-400">OS</dt>
-                  <dd>
-                    <span className="inline-block rounded-sm bg-stone-100 px-1.5 py-0.5 font-mono text-[10px] text-stone-600 dark:bg-stone-800 dark:text-stone-300">
-                      {r.os}
-                    </span>
-                  </dd>
-                </div>
-              </dl>
-
-              <div className="mt-2 flex items-center justify-between gap-2 border-t border-stone-100 pt-2 dark:border-stone-800">
-                <a
-                  href={r.targetUrl}
-                  target="_blank"
-                  rel="nofollow noopener noreferrer"
-                  title={r.targetUrl}
-                  className="flex min-w-0 items-center gap-1 truncate font-mono text-[11px] text-stone-600 hover:text-red-600 dark:text-stone-400 dark:hover:text-red-400"
-                >
-                  <ExternalLink className="size-3 shrink-0" />
-                  <span className="truncate">{truncateUrl(r.targetUrl, 32)}</span>
-                </a>
-                <button
-                  onClick={() => onMirror(r.id)}
-                  className="inline-flex shrink-0 items-center gap-1 rounded bg-red-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-red-700"
-                >
-                  <Monitor className="size-3" /> Mirror
-                </button>
-              </div>
-
-              {/* Admin accept / reject for on-hold submissions (mobile) */}
-              {isAdmin && r.status === "onhold" && (
-                <div className="mt-2 flex items-center gap-2">
-                  <button
-                    onClick={() => handleApprove(r.id)}
-                    disabled={
-                      approveMutation.isPending || rejectMutation.isPending
-                    }
-                    className="inline-flex flex-1 items-center justify-center gap-1 rounded bg-emerald-600 px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    {approveMutation.isPending &&
-                    approveMutation.variables === r.id ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <Check className="size-3" />
-                    )}
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleReject(r.id)}
-                    disabled={
-                      approveMutation.isPending || rejectMutation.isPending
-                    }
-                    className="inline-flex flex-1 items-center justify-center gap-1 rounded bg-stone-300 px-2 py-1.5 text-[11px] font-semibold text-stone-700 hover:bg-stone-400 dark:bg-stone-700 dark:text-stone-200 dark:hover:bg-stone-600 disabled:opacity-50"
-                  >
-                    {rejectMutation.isPending &&
-                    rejectMutation.variables === r.id ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <X className="size-3" />
-                    )}
-                    Reject
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-      </div>
     </>
   );
 }

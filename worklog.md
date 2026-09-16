@@ -454,3 +454,36 @@ Stage Summary:
     /  /notify  /archive  /onhold  /special  /leaderboard/attacker  /leaderboard/team  /report/:id
 - Implemented via next.config.ts rewrites (paths → /) + client-side History API; single Next.js
   route at / preserved.
+
+---
+Task ID: 12
+Agent: main (orchestrator)
+Task: Mobile report table — use horizontally-scrollable table (like zone-sam1337) instead of stacked cards.
+
+User requirement:
+- On mobile the report table should be a real table that can be swiped/scrolled horizontally to see
+  all columns — same as zone-sam1337.com — NOT the stacked-card layout.
+
+Work Log:
+- src/components/zone/report-table.tsx:
+  - Removed the separate "Mobile: stacked card layout" section entirely (~7KB of card markup).
+  - Changed the table wrapper from `hidden w-full overflow-x-auto thin-scrollbar md:block`
+    (desktop-only) to `w-full overflow-x-auto thin-scrollbar` (visible on ALL screen sizes).
+  - The single `<table min-w-[920px]>` now renders for mobile + desktop; mobile users swipe
+    horizontally to see all columns (TIME, ATTACKER, TEAM, H, M, R, L, S, URL, OS, MIRROR, ACTIONS).
+  - Cleaned up the now-unused `ExternalLink` import.
+
+Agent Browser verification (mobile viewport 390×844):
+- Table wrapper: overflowX=auto, tableScrollWidth=920, wrapClientWidth=364,
+  horizontallyScrollable=true. ✓
+- Horizontally scrolling the table (scrollLeft=300) reveals the off-screen columns. ✓
+- VLM confirmed: "a real table with visible columns (TIME, ATTACKER, TEAM, H, M, R, L, S, URL, OS,
+  MIRROR) that can be horizontally scrolled... rather than using stacked cards." ✓
+- No stacked-card `.md:hidden` section remains. ✓
+- Admin ACTIONS column (Accept/Reject) is reachable by scrolling right on mobile. ✓
+- Console: no errors. Lint: 0 errors. Dev log: clean.
+
+Stage Summary:
+- Mobile now matches zone-sam1337.com: a single horizontally-scrollable report table for all
+  screen sizes. Users swipe left/right to see every column. The stacked-card mobile layout is gone.
+- Desktop behavior unchanged (was already a scrollable table).
