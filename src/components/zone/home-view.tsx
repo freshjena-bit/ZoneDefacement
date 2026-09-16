@@ -56,11 +56,11 @@ export function HomeView({
             <Bug className="size-3" /> ZONEDEFACEMENT MIRROR ARCHIVE
           </p>
           <h1 className="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-white sm:text-4xl">
-            Defacement Mirror &amp; Cyber Vandalism Database
+            Global Defacement Mirror Archive
           </h1>
           <p className="mt-2 text-sm text-stone-500 dark:text-stone-400 sm:text-base">
-            A historical archive of mirrored website defacements with attacker
-            attribution. Built for security research &amp; preservation.
+            A verified mirror database of web defacements — tracked by attacker,
+            ranked by activity, and preserved as public incident evidence.
           </p>
           <form
             onSubmit={submitHero}
@@ -162,11 +162,11 @@ export function HomeView({
       {/* Notify CTA (also reachable via nav) */}
       <section ref={contactRef} className="mt-10 scroll-mt-20 rounded-lg border border-stone-200 bg-white p-6 text-center shadow-sm dark:border-stone-800 dark:bg-stone-900">
         <h2 className="text-lg font-bold text-stone-900 dark:text-white">
-          Spotted a fresh defacement?
+          Report a defacement
         </h2>
         <p className="mx-auto mt-1 max-w-xl text-sm text-stone-500 dark:text-stone-400">
-          Submit a target URL and we&apos;ll mirror it for the archive. New
-          submissions enter the queue pending review.
+          Submit a target URL to capture and archive a mirror. Verified
+          submissions appear instantly; others enter the review queue.
         </p>
         <button
           onClick={onNotify}

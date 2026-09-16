@@ -11,11 +11,11 @@ export function SiteFooter() {
             <Terminal className="size-3" />
           </span>
           <span className="text-sm font-semibold">
-            Copyright © {new Date().getFullYear()} ZoneDefacement — Defacement Mirror Archive. All Rights Reserved.
+            Copyright © {new Date().getFullYear()} ZoneDefacement — Global Defacement Mirror Archive. All Rights Reserved.
           </span>
         </div>
         <p className="max-w-2xl text-xs text-stone-400 dark:text-stone-500">
-          A ZoneDefacement cyber vandalism database. Built for security research &amp; historical preservation.
+          A global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.
         </p>
       </div>
     </footer>

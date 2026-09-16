@@ -14,30 +14,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ZoneDefacement — Defacement Mirror & Cyber Vandalism Database",
+  title: "ZoneDefacement — Global Defacement Mirror Archive",
   description:
-    "A ZoneDefacement mirror archive. Browse mirrored website defacements with attacker attribution, rankings, and historical captures for security research.",
+    "ZoneDefacement is a global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
   keywords: [
     "ZoneDefacement",
     "defacement mirror",
     "zonedefacement",
-    "cyber vandalism",
-    "web defacement archive",
-    "security research",
+    "web defacement",
+    "defacement archive",
+    "mirror database",
   ],
   authors: [{ name: "ZoneDefacement" }],
   openGraph: {
-    title: "ZoneDefacement — Defacement Mirror & Cyber Vandalism Database",
+    title: "ZoneDefacement — Global Defacement Mirror Archive",
     description:
-      "A ZoneDefacement mirror archive for security research & historical preservation.",
+      "A global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
     siteName: "ZoneDefacement",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ZoneDefacement — Defacement Mirror Archive",
+    title: "ZoneDefacement — Global Defacement Mirror Archive",
     description:
-      "A ZoneDefacement mirror archive for security research & historical preservation.",
+      "A global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
   },
 };
 

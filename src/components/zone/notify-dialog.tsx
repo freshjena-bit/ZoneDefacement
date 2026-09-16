@@ -153,12 +153,12 @@ export function NotifyDialog({
             Notify a new defacement
           </DialogTitle>
           <DialogDescription>
-            Submit a target URL — we&apos;ll fetch &amp; mirror the page. OS,
-            country and type flags (Home / Mass / Redeface / Special) are{" "}
+            Submit a target URL to capture a mirror. OS, country, and type flags
+            (Home / Mass / Redeface / Special) are{" "}
             <span className="font-medium text-red-600 dark:text-red-400">
               detected automatically
             </span>
-            .
+            . Verified mirrors appear instantly; others enter the review queue.
           </DialogDescription>
         </DialogHeader>
 

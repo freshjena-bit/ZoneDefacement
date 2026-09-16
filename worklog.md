@@ -591,3 +591,36 @@ Stage Summary:
 - Submissions without the signature (e.g. capture failed, page doesn't show the text, or wrong
   attacker name) go to the On Hold queue for manual admin review (Accept/Reject).
 - Toast notifications clearly indicate the outcome: "Mirror auto-verified ✓" vs "pending review".
+
+---
+Task ID: 16
+Agent: main (orchestrator)
+Task: Professionalize all descriptive copy — remove "security research / preservation / cyber vandalism" phrasing.
+
+Work Log:
+- layout.tsx metadata:
+  - title → "ZoneDefacement — Global Defacement Mirror Archive"
+  - description → "ZoneDefacement is a global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence."
+  - keywords: removed "cyber vandalism" and "security research"; added "web defacement", "defacement archive", "mirror database".
+  - og/twitter titles + descriptions aligned to the new professional copy.
+- home-view.tsx:
+  - Hero h1 → "Global Defacement Mirror Archive"
+  - Hero subtitle → "A verified mirror database of web defacements — tracked by attacker, ranked by activity, and preserved as public incident evidence."
+  - CTA section h2 "Spotted a fresh defacement?" → "Report a defacement"
+  - CTA body → "Submit a target URL to capture and archive a mirror. Verified submissions appear instantly; others enter the review queue."
+- site-footer.tsx:
+  - Copyright line → "ZoneDefacement — Global Defacement Mirror Archive"
+  - Tagline → "A global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence."
+- notify-dialog.tsx description → "Submit a target URL to capture a mirror. OS, country, and type flags… detected automatically. Verified mirrors appear instantly; others enter the review queue."
+- types.ts comment: "defacement mirror archive" → "mirror archive".
+
+Verification:
+- No "security research", "historical preservation", "cyber vandalism", "built for", or "spotted a fresh" anywhere in src.
+- Browser: title = "ZoneDefacement — Global Defacement Mirror Archive"; hero h1 = "Global Defacement Mirror Archive";
+  subtitle + footer + CTA all use the new professional copy.
+- Lint: 0 errors. Console: no errors. Dev log: clean.
+
+Stage Summary:
+- All user-facing copy is now clean and professional — no casual/"security research" framing.
+  Consistent tagline across metadata, hero, footer, CTA, and notify dialog: "A global defacement
+  mirror database tracking verified web defacements, attacker rankings, and incident evidence."
