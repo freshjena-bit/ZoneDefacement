@@ -3,18 +3,38 @@ import crypto from "node:crypto";
 /**
  * Minimal admin authentication for the ZoneDefacement archive.
  *
- * A single hardcoded admin account (the archive operator) can log in to
- * verify (accept) or reject on-hold defacement submissions. Session state is
- * held in a signed httpOnly cookie — no database table needed.
+ * Admin credentials are read from environment variables (ADMIN_USERNAME /
+ * ADMIN_PASSWORD) so they never live in source code. In local development
+ * they fall back to demo defaults (GadaLuBau / slametwkw) so the sandbox
+ * works out of the box — set the env vars in production (e.g. on Vercel) to
+ * override. Session state is held in a signed httpOnly cookie — no database
+ * table needed.
  */
 
-// Admin credentials (archive operator).
-const ADMIN_USERNAME = "GadaLuBau";
-const ADMIN_PASSWORD = "slametwkw";
+// Demo fallbacks for local development ONLY. Override via env vars in prod.
+const DEV_ADMIN_USERNAME = "GadaLuBau";
+const DEV_ADMIN_PASSWORD = "slametwkw";
+
+/** Read the admin username from the environment (fresh per request so env
+ *  var changes on Vercel take effect without code changes). */
+function adminUsername(): string {
+  const v = process.env.ADMIN_USERNAME;
+  return v && v.trim() ? v.trim() : DEV_ADMIN_USERNAME;
+}
+
+/** Read the admin password from the environment (fresh per request). */
+function adminPassword(): string {
+  const v = process.env.ADMIN_PASSWORD;
+  return v && v.length ? v : DEV_ADMIN_PASSWORD;
+}
 
 // HMAC secret. Prefer an env var in production; fall back to a fixed dev key.
-const SECRET =
-  process.env.AUTH_SECRET || "zonedefacement-archive-hmac-secret-please-override-in-prod";
+function secret(): string {
+  return (
+    process.env.AUTH_SECRET ||
+    "zonedefacement-archive-hmac-secret-please-override-in-prod"
+  );
+}
 
 export const SESSION_COOKIE_NAME = "zonedefacement_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -23,7 +43,7 @@ export interface Session {
   username: string;
 }
 
-/** Verify admin username/password. */
+/** Verify admin username/password against the env-configured credentials. */
 export function verifyCredentials(
   username: string,
   password: string,
@@ -31,8 +51,8 @@ export function verifyCredentials(
   // Constant-time-ish comparison to avoid trivial timing leaks.
   const u = Buffer.from(String(username ?? ""));
   const p = Buffer.from(String(password ?? ""));
-  const eu = Buffer.from(ADMIN_USERNAME);
-  const ep = Buffer.from(ADMIN_PASSWORD);
+  const eu = Buffer.from(adminUsername());
+  const ep = Buffer.from(adminPassword());
   return (
     u.length === eu.length &&
     p.length === ep.length &&
@@ -53,7 +73,7 @@ function safeEqual(a: Buffer, b: Buffer): boolean {
 export function createSessionToken(username: string): string {
   const exp = Date.now() + MAX_AGE_SECONDS * 1000;
   const payload = `${exp}.${username}`;
-  const sig = crypto.createHmac("sha256", SECRET).update(payload).digest("hex");
+  const sig = crypto.createHmac("sha256", secret()).update(payload).digest("hex");
   return `${payload}.${sig}`;
 }
 
@@ -65,7 +85,7 @@ export function verifySessionToken(token: string): string | null {
   const sig = token.slice(idx + 1);
 
   const expected = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", secret())
     .update(payload)
     .digest("hex");
 

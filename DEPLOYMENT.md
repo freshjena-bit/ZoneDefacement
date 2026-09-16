@@ -68,20 +68,29 @@ This runs `prisma db push` and creates the `Defacement` table in Supabase.
 3. **Framework Preset**: Next.js (auto-detected).
 4. **Build Command**: `next build` (default) — the `postinstall` script runs
    `prisma generate` automatically.
-5. **Environment Variables** — add the same three:
+5. **Environment Variables** — add all five:
    - `DATABASE_URL` (pooler, port 6543, `?pgbouncer=true&connection_limit=1`)
    - `DIRECT_URL` (direct, port 5432)
-   - `AUTH_SECRET` (long random string)
+   - `ADMIN_USERNAME` (your admin username — **override the demo default**)
+   - `ADMIN_PASSWORD` (a strong password — **override the demo default**)
+   - `AUTH_SECRET` (long random string for signing session tokens)
 6. **Deploy**.
 
 Vercel will `bun install` → `postinstall` (`prisma generate`) → `next build`
 → ship. The app is now live.
 
+> **Security**: the admin credentials are read from env vars at request time,
+> so they never appear in the source code. The demo defaults (`GadaLuBau` /
+> `slametwkw`) are only used when the env vars are unset (i.e. local dev). In
+> production on Vercel, always set `ADMIN_USERNAME` / `ADMIN_PASSWORD` to
+> custom values.
+
 ## 6. Verify
 
 - Visit your Vercel URL → the home page loads with the seeded archive.
+- Log in as admin using the `ADMIN_USERNAME` / `ADMIN_PASSWORD` you set →
+  Accept/Reject on-hold entries.
 - Submit a defacement via `/notify` → it appears in the archive.
-- Log in as admin (`GadaLuBau` / `slametwkw`) → Accept/Reject on-hold entries.
 
 ---
 
@@ -104,8 +113,10 @@ The data lives in `db/custom.db`. No external services required.
 - **Why two URLs?** Supabase's PgBouncer pooler (port 6543) doesn't support
   Prisma's migration engine, so migrations use the direct URL (port 5432).
   Runtime queries use the pooler for efficient connection reuse in serverless.
-- **Admin credentials** are hardcoded in `src/lib/auth.ts` (`GadaLuBau` /
-  `slametwkw`). Override the HMAC secret via `AUTH_SECRET` in production.
+- **Admin credentials** are configured via `ADMIN_USERNAME` / `ADMIN_PASSWORD`
+  env vars (set them on Vercel). The HMAC session secret is `AUTH_SECRET`. In
+  local dev, these fall back to demo defaults (`GadaLuBau` / `slametwkw`) so
+  the sandbox works without configuration — always override in production.
 - **Auto-verification**: submissions whose mirrored page contains
   "hacked by {attacker}" or "touched by {attacker}" are auto-verified; others
   enter the on-hold queue for admin review.
