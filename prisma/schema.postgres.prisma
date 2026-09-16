@@ -1,10 +1,15 @@
 // Prisma schema for PRODUCTION (Supabase / PostgreSQL).
-// This file is identical to schema.prisma except the datasource provider
-// is "postgresql". Use `bun run db:use-postgres` to copy it into
-// prisma/schema.prisma before deploying to Vercel + Supabase.
+// Use `bun run db:use-postgres` to copy this into prisma/schema.prisma before
+// deploying to Vercel + Supabase.
 //
 // Local development uses SQLite (prisma/schema.sqlite.prisma). Switch back
 // with `bun run db:use-sqlite`.
+//
+// NOTE: we use a single DATABASE_URL (no directUrl). Set it to Supabase's
+// SESSION pooler (port 5432 at pooler.supabase.com) — it supports both
+// migrations (prisma db push) and runtime queries from Vercel serverless.
+// The direct connection (db.xxx.supabase.co) is IPv6-only on new Supabase
+// projects and is NOT reachable from Vercel's build environment.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,8 +17,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")      // Supabase pooler URL (port 6543), pgbouncer=true
-  directUrl = env("DIRECT_URL")       // Supabase direct URL (port 5432) for migrations
+  url      = env("DATABASE_URL")
 }
 
 // A single mirrored website defacement record.
