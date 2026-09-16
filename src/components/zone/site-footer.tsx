@@ -11,7 +11,7 @@ export function SiteFooter() {
             <Terminal className="size-3" />
           </span>
           <span className="text-sm font-semibold">
-            Copyright © {new Date().getFullYear()} SAM1337 — Defacement Mirror Archive. All Rights Reserved.
+            Copyright © {new Date().getFullYear()} ZoneDefacement — Defacement Mirror Archive. All Rights Reserved.
           </span>
         </div>
         <p className="max-w-2xl text-xs text-stone-400 dark:text-stone-500">

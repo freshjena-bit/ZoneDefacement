@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 /**
- * Minimal admin authentication for the SAM1337 archive.
+ * Minimal admin authentication for the ZoneDefacement archive.
  *
  * A single hardcoded admin account (the archive operator) can log in to
  * verify (accept) or reject on-hold defacement submissions. Session state is
@@ -14,9 +14,9 @@ const ADMIN_PASSWORD = "slametwkw";
 
 // HMAC secret. Prefer an env var in production; fall back to a fixed dev key.
 const SECRET =
-  process.env.AUTH_SECRET || "sam1337-archive-hmac-secret-please-override-in-prod";
+  process.env.AUTH_SECRET || "zonedefacement-archive-hmac-secret-please-override-in-prod";
 
-export const SESSION_COOKIE_NAME = "sam1337_session";
+export const SESSION_COOKIE_NAME = "zonedefacement_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 export interface Session {

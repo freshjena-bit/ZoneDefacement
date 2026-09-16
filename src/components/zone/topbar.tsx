@@ -116,14 +116,14 @@ export function Topbar({ onSearch, onNavigate }: TopbarProps) {
         <button
           onClick={() => onNavigate("home")}
           className="flex shrink-0 items-center gap-2"
-          aria-label="Go to SAM1337 home"
+          aria-label="Go to ZoneDefacement home"
         >
           <span className="flex size-8 items-center justify-center rounded-md bg-red-600 text-white shadow-sm">
             <Terminal className="size-4" />
           </span>
           <span className="flex items-baseline gap-1.5">
             <span className="text-base font-extrabold tracking-tight text-stone-900 dark:text-white">
-              SAM1337
+              ZoneDefacement
             </span>
             <span className="hidden font-mono text-[10px] font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500 sm:inline">
               ZONE v7.6

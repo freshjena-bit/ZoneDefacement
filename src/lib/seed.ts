@@ -180,7 +180,7 @@ function buildMirrorHtml(opts: {
 <p style="color:#aaa;font-size:16px;">${teamLine}</p>
 <hr style="border:0;border-top:1px solid #333;margin:30px auto;width:60%;">
 <p style="color:#888;font-size:14px;">Your security is a joke.<br/>Patch your system before someone worse shows up.</p>
-<p style="color:#555;font-size:12px;margin-top:40px;">Mirrored by SAM1337 — Defacement Archive</p>
+<p style="color:#555;font-size:12px;margin-top:40px;">Mirrored by ZoneDefacement — Defacement Archive</p>
 </div></body></html>`;
 }
 

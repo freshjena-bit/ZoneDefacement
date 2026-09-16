@@ -487,3 +487,33 @@ Stage Summary:
 - Mobile now matches zone-sam1337.com: a single horizontally-scrollable report table for all
   screen sizes. Users swipe left/right to see every column. The stacked-card mobile layout is gone.
 - Desktop behavior unchanged (was already a scrollable table).
+
+---
+Task ID: 13
+Agent: main (orchestrator)
+Task: Rename the brand from "SAM1337" to "ZoneDefacement" everywhere.
+
+Work Log:
+- Replaced across 13 source files (22 occurrences): SAM1337 → ZoneDefacement
+  (display brand), sam1337 → zonedefacement (cookie name `zonedefacement_session`,
+  db module version `zonedefacement-v1`, user-agent `ZoneDefacement-Mirror/1.0`,
+  hmac secret fallback). Also zone-sam1337 (comment) → ZoneDefacement.
+- Files: layout.tsx (metadata title/og/twitter/siteName/authors), api/stats,
+  lib/db, lib/detect, lib/level, lib/seed, lib/auth, lib/router, topbar, types,
+  report-table, site-footer, next.config.ts.
+- Backfilled existing 260 seeded records' mirrorHtml so defacement pages now read
+  "Mirrored by ZoneDefacement — Defacement Archive" (one-time script via Prisma;
+  preserved all user-submitted onhold entries).
+
+Verification:
+- Page title: "ZoneDefacement — Defacement Mirror & Cyber Vandalism Database". ✓
+- Topbar wordmark: "ZoneDefacement" + "ZONE v7.6" badge (kept as version tag). ✓
+- Footer: "Copyright © 2026 ZoneDefacement — Defacement Mirror Archive." ✓
+- Mirror view defacement HTML: "Mirrored by ZoneDefacement — Defacement Archive". ✓
+- No SAM1337/sam1337 anywhere in src or next.config.ts. ✓
+- Lint: 0 errors. Console: no errors. Dev log: clean.
+
+Stage Summary:
+- App renamed SAM1337 → ZoneDefacement throughout (brand, metadata, cookie,
+  user-agent, seeded mirror HTML). Admin login (GadaLuBau/slametwkw) unchanged.
+- The "sam" attacker in the roster is unrelated to the brand and was left as-is.

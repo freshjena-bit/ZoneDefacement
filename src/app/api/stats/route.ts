@@ -1,4 +1,4 @@
-// SAM1337 stats endpoint — returns verified-report counts, unique-host count,
+// ZoneDefacement stats endpoint — returns verified-report counts, unique-host count,
 // reporter count, today's submissions, and the top-10 attacker/team rankings.
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";

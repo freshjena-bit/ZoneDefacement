@@ -1,4 +1,4 @@
-// Shared types for the SAM1337 defacement mirror archive UI.
+// Shared types for the ZoneDefacement defacement mirror archive UI.
 
 export type ReporterLevel = "LEGEND" | "PRO" | "ELITE" | "ROOKIE";
 export type DefacementStatus = "approved" | "onhold";
