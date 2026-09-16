@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A website that has been archived. One site can have many snapshots over time.
+model Site {
+  id              String     @id @default(cuid())
+  url             String     @unique // normalized URL (with protocol, no trailing slash)
+  domain          String
+  title           String
+  description     String?
+  favicon         String?
+  createdAt       DateTime   @default(now())
+  lastArchivedAt  DateTime?
+  snapshots       Snapshot[]
+}
+
+// A single point-in-time capture of a site's content.
+model Snapshot {
+  id            String   @id @default(cuid())
+  siteId        String
+  site          Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  capturedAt    DateTime @default(now())
+  title         String
+  excerpt       String?  // short text excerpt
+  html          String   // extracted HTML content from page_reader
+  text          String?  // plain text version
+  status        String   @default("success") // success | failed
+  httpStatus    Int?
+  contentLength Int?     // bytes
+  publishedTime String?  // original article publish time if available
+  captureMs     Int?     // how long the capture took
+}
