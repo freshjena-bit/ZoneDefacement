@@ -61,6 +61,11 @@ bun run db:push
 This runs `prisma db push` and creates the `Defacement` table in Supabase.
 (The app auto-seeds ~260 demo records on first API call if the table is empty.)
 
+> **Note**: the `build` script (`prisma generate && prisma db push --accept-data-loss && next build`)
+> also runs `prisma db push` automatically on every Vercel deploy, so the table
+> schema is always in sync. You only need to run `db:push` manually the first
+> time (or skip it — the first Vercel build will create the tables for you).
+
 ## 5. Deploy to Vercel
 
 1. Push the repo to GitHub/GitLab/Bitbucket.
