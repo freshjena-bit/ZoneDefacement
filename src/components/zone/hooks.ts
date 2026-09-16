@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  AdminUser,
   ArchiveFilter,
   DefacementFull,
   NotifyPayload,
@@ -122,6 +123,112 @@ export function useCreateDefacement() {
       // submission appears immediately in the archive + onhold panels.
       qc.invalidateQueries({ queryKey: ["defacements"] });
       qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+// --------------------------- Admin auth -------------------------------------
+
+/** Current admin session (or null if logged out / not admin). */
+export function useSession() {
+  return useQuery<AdminUser | null>({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const r = await fetch("/api/auth/me", { cache: "no-store" });
+      if (r.status === 401) return null;
+      if (!r.ok) throw new Error("Failed to load session");
+      const j = (await r.json()) as { user: AdminUser | null };
+      return j.user;
+    },
+    retry: false,
+    staleTime: 60_000,
+  });
+}
+
+export function useLogin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { username: string; password: string }) => {
+      const r = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error((j as any)?.error ?? `Login failed (${r.status})`);
+      }
+      return j as { ok: true; user: AdminUser };
+    },
+    onSuccess: () => {
+      qc.setQueryData(["session"], (old: unknown) => old); // touch
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+export function useLogout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/auth/logout", {
+        method: "POST",
+        cache: "no-store",
+      });
+      if (!r.ok) throw new Error("Logout failed");
+      return true;
+    },
+    onSuccess: () => {
+      qc.setQueryData(["session"], null);
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+/** Approve (verify) an on-hold defacement. Admin-only. */
+export function useApproveDefacement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/defacements/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error((j as any)?.error ?? `Approve failed (${r.status})`);
+      }
+      return j as { defacement: DefacementFull };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["defacements"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+      qc.invalidateQueries({ queryKey: ["defacement"] });
+    },
+  });
+}
+
+/** Reject (delete) an on-hold defacement. Admin-only. */
+export function useRejectDefacement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/defacements/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject" }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        throw new Error((j as any)?.error ?? `Reject failed (${r.status})`);
+      }
+      return j as { ok: true; id: string };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["defacements"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+      qc.invalidateQueries({ queryKey: ["defacement"] });
     },
   });
 }

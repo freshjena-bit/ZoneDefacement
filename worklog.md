@@ -291,3 +291,50 @@ Stage Summary:
   - Mass: user-selected mode with >1 URL.
 - Mass mode supports up to 20 URLs processed concurrently (3 at a time).
 - Verified end-to-end with real captures. No errors, lint clean.
+
+---
+Task ID: 9
+Agent: main (orchestrator)
+Task: Admin login (GadaLuBau/slametwkw) + Accept/Reject on-hold defacements.
+
+User requirement:
+- On-hold defacements can be accepted (verified) or rejected by an admin account.
+- Admin credentials: username = GadaLuBau, password = slametwkw.
+
+Work Log:
+- Created src/lib/auth.ts:
+  - Hardcoded admin creds (GadaLuBau / slametwkw), timing-safe credential check.
+  - HMAC-SHA256 signed session token (exp.username.signature), 7-day expiry.
+  - getSession(req) reads & verifies the httpOnly cookie.
+- Created 3 auth API routes:
+  - POST /api/auth/login → verify creds, set httpOnly cookie, return { user }.
+  - POST /api/auth/logout → clear cookie.
+  - GET /api/auth/me → return { user } or 401.
+- Added PATCH /api/defacements/[id] (admin-gated via getSession):
+  - { action: "approve" } → set status = "approved".
+  - { action: "reject" } → delete the record.
+  - Returns 401 without a valid admin session.
+- Added frontend hooks: useSession, useLogin, useLogout, useApproveDefacement, useRejectDefacement (invalidate defacements/stats/defacement queries on success).
+- Created src/components/zone/login-dialog.tsx (username + password form).
+- Updated topbar.tsx: "Admin login" button when logged out → red "GadaLuBau" badge + "Logout" button when logged in. LoginDialog wired in.
+- Updated report-table.tsx: when admin, an ACTIONS column is appended with Accept (emerald check) + Reject (stone X) buttons on on-hold rows only. Mobile card layout gets Accept/Reject buttons too. Approved rows show "·".
+- Updated mirror-view.tsx: when admin + status on-hold, Accept/Reject buttons appear in the sticky top bar next to "View live site". After accept, status chip flips to "approved" and buttons disappear. After reject, navigates back.
+
+Agent Browser verification:
+- Logged out state: topbar shows "Admin login"; On Hold table shows NO Accept/Reject (correct).
+- Login with correct creds (GadaLuBau / slametwkw): success → topbar shows red "GadaLuBau" badge + "Logout".
+- After login: On Hold table shows new ACTIONS column with Accept/Reject on each on-hold row.
+- Accept (from table): record count 12→11, toast "Defacement verified". Verified tab now shows the accepted record (55 total). No actions on approved rows.
+- Reject (from table): record count 11→10, toast "Submission rejected — The on-hold entry was removed." Record permanently deleted.
+- Accept (from mirror view): toast "Defacement verified", status chip flipped to "approved", Accept/Reject buttons disappeared.
+- Logout: toast "Logged out", badge reverted to "Admin login", Accept/Reject actions disappeared.
+- Wrong password: toast "Login failed — Invalid username or password", dialog stayed open.
+- Security: curl PATCH /api/defacements/[id] without cookie → 401. GET /api/auth/me without cookie → 401.
+- Console: no errors. Lint: 0 errors, 0 warnings. Dev log: clean.
+
+Stage Summary:
+- Admin authentication implemented with signed httpOnly cookie session (no DB table needed).
+- Admin (GadaLuBau / slametwkw) can log in via the topbar "Admin" button.
+- Accept (verify) moves on-hold → approved; Reject permanently deletes the on-hold submission.
+- Actions available in both the archive table (ACTIONS column) and the mirror view top bar — only for on-hold rows, only when logged in as admin.
+- PATCH endpoint is admin-gated (401 without session). All flows verified end-to-end.

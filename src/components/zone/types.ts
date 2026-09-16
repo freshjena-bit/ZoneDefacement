@@ -41,6 +41,10 @@ export interface Stats {
 
 export type ViewName = "home" | "archive" | "mirror" | "rank";
 
+export interface AdminUser {
+  username: string;
+}
+
 export interface ViewState {
   name: ViewName;
   defacementId?: string;

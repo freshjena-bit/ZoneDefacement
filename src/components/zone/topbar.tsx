@@ -14,6 +14,9 @@ import {
   Users,
   BarChart3,
   Mail,
+  ShieldCheck,
+  LogOut,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +28,9 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "./theme-toggle";
+import { LoginDialog } from "./login-dialog";
+import { useLogout, useSession } from "./hooks";
+import { toast } from "sonner";
 import type { ViewName } from "./types";
 
 interface TopbarProps {
@@ -44,12 +50,23 @@ interface NavItem {
 export function Topbar({ onSearch, onNavigate }: TopbarProps) {
   const [q, setQ] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const { data: admin } = useSession();
+  const logoutMutation = useLogout();
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = q.trim();
     if (!trimmed) return;
     onSearch(trimmed);
+  }
+
+  function handleLogout() {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Logged out");
+      },
+    });
   }
 
   const navItems: NavItem[] = [
@@ -130,6 +147,40 @@ export function Topbar({ onSearch, onNavigate }: TopbarProps) {
         </form>
 
         <div className="ml-auto flex items-center gap-1">
+          {/* Admin login / badge */}
+          {admin ? (
+            <div className="mr-1 flex items-center gap-1">
+              <span className="hidden items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm sm:inline-flex">
+                <ShieldCheck className="size-3.5" />
+                <span className="max-w-[120px] truncate">{admin.username}</span>
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                disabled={logoutMutation.isPending}
+                className="h-8 px-2 text-xs font-medium text-stone-600 hover:bg-red-50 hover:text-red-700 dark:text-stone-300 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                aria-label="Log out admin"
+                title="Log out"
+              >
+                <LogOut className="size-3.5" />
+                <span className="hidden lg:inline">Logout</span>
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLoginOpen(true)}
+              className="h-8 px-2.5 text-xs font-medium text-stone-600 hover:bg-red-50 hover:text-red-700 dark:text-stone-300 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+              aria-label="Admin login"
+              title="Admin login"
+            >
+              <LogIn className="size-3.5" />
+              <span className="hidden sm:inline">Admin</span>
+            </Button>
+          )}
+
           <ThemeToggle />
 
           {/* Desktop nav (compact group of buttons) */}
@@ -198,6 +249,8 @@ export function Topbar({ onSearch, onNavigate }: TopbarProps) {
           </Sheet>
         </div>
       </div>
+
+      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
     </header>
   );
 }

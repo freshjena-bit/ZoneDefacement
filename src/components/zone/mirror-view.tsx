@@ -10,11 +10,20 @@ import {
   Star,
   Globe,
   Terminal,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LevelBadge } from "./level-badge";
-import { useDefacement } from "./hooks";
+import {
+  useApproveDefacement,
+  useDefacement,
+  useRejectDefacement,
+  useSession,
+} from "./hooks";
 
 interface MirrorViewProps {
   defacementId: string;
@@ -61,10 +70,44 @@ function TypeChip({
 export function MirrorView({ defacementId, onBack, onPickAttacker }: MirrorViewProps) {
   const { data, isLoading, error } = useDefacement(defacementId);
   const def = data?.defacement;
+  const { data: admin } = useSession();
+  const approveMutation = useApproveDefacement();
+  const rejectMutation = useRejectDefacement();
+  const isAdmin = Boolean(admin);
 
   // Build the sandboxed iframe srcDoc. We deliberately use sandbox="" (no
   // allow-scripts) so any embedded script in the mirrored HTML cannot run.
   const srcDoc = useMemo(() => def?.mirrorHtml ?? "", [def?.mirrorHtml]);
+
+  function handleApprove() {
+    if (!def) return;
+    approveMutation.mutate(def.id, {
+      onSuccess: () =>
+        toast.success("Defacement verified", {
+          description: "Moved to the verified archive.",
+        }),
+      onError: (e: unknown) =>
+        toast.error("Verify failed", {
+          description: e instanceof Error ? e.message : "error",
+        }),
+    });
+  }
+
+  function handleReject() {
+    if (!def) return;
+    rejectMutation.mutate(def.id, {
+      onSuccess: () => {
+        toast.success("Submission rejected", {
+          description: "The on-hold entry was removed.",
+        });
+        onBack();
+      },
+      onError: (e: unknown) =>
+        toast.error("Reject failed", {
+          description: e instanceof Error ? e.message : "error",
+        }),
+    });
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
@@ -93,20 +136,57 @@ export function MirrorView({ defacementId, onBack, onPickAttacker }: MirrorViewP
             </div>
           </div>
           {def && (
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
-            >
-              <a
-                href={def.targetUrl}
-                target="_blank"
-                rel="nofollow noopener noreferrer"
+            <>
+              {isAdmin && def.status === "onhold" && (
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    onClick={handleApprove}
+                    disabled={
+                      approveMutation.isPending || rejectMutation.isPending
+                    }
+                    size="sm"
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    {approveMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Check className="size-4" />
+                    )}
+                    Accept
+                  </Button>
+                  <Button
+                    onClick={handleReject}
+                    disabled={
+                      approveMutation.isPending || rejectMutation.isPending
+                    }
+                    size="sm"
+                    variant="outline"
+                    className="border-stone-300 text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-800"
+                  >
+                    {rejectMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <X className="size-4" />
+                    )}
+                    Reject
+                  </Button>
+                </div>
+              )}
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
               >
-                <ExternalLink className="size-4" /> View live site
-              </a>
-            </Button>
+                <a
+                  href={def.targetUrl}
+                  target="_blank"
+                  rel="nofollow noopener noreferrer"
+                >
+                  <ExternalLink className="size-4" /> View live site
+                </a>
+              </Button>
+            </>
           )}
         </div>
 

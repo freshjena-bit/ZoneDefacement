@@ -7,9 +7,14 @@ import {
   Star,
   Monitor,
   ExternalLink,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { Defacement } from "./types";
 import { LevelBadge } from "./level-badge";
+import { useApproveDefacement, useRejectDefacement, useSession } from "./hooks";
 
 interface ReportTableProps {
   rows: Defacement[];
@@ -103,7 +108,7 @@ function FlagCell({ cc }: { cc: string | null }) {
   );
 }
 
-const COLUMNS = [
+const BASE_COLUMNS = [
   "TIME",
   "ATTACKER",
   "TEAM",
@@ -124,6 +129,41 @@ export function ReportTable({
   onPickTeam,
   isLoading,
 }: ReportTableProps) {
+  const { data: admin } = useSession();
+  const approveMutation = useApproveDefacement();
+  const rejectMutation = useRejectDefacement();
+  const isAdmin = Boolean(admin);
+
+  const COLUMNS = isAdmin
+    ? ([...BASE_COLUMNS, "ACTIONS"] as const)
+    : BASE_COLUMNS;
+
+  function handleApprove(id: string) {
+    approveMutation.mutate(id, {
+      onSuccess: () =>
+        toast.success("Defacement verified", {
+          description: "Moved to the verified archive.",
+        }),
+      onError: (e: unknown) =>
+        toast.error("Verify failed", {
+          description: e instanceof Error ? e.message : "error",
+        }),
+    });
+  }
+
+  function handleReject(id: string) {
+    rejectMutation.mutate(id, {
+      onSuccess: () =>
+        toast.success("Submission rejected", {
+          description: "The on-hold entry was removed.",
+        }),
+      onError: (e: unknown) =>
+        toast.error("Reject failed", {
+          description: e instanceof Error ? e.message : "error",
+        }),
+    });
+  }
+
   return (
     <>
       {/* Desktop / tablet: traditional table with horizontal scroll */}
@@ -134,7 +174,10 @@ export function ReportTable({
               {COLUMNS.map((c) => (
                 <th
                   key={c}
-                  className="px-2 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400"
+                  className={
+                    "px-2 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 " +
+                    (c === "ACTIONS" ? "text-center" : "")
+                  }
                 >
                   {c}
                 </th>
@@ -233,6 +276,52 @@ export function ReportTable({
                       <Monitor className="size-3.5" />
                     </button>
                   </td>
+                  {isAdmin && (
+                    <td className="px-2 py-2 text-center">
+                      {r.status === "onhold" ? (
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleApprove(r.id)}
+                            disabled={
+                              approveMutation.isPending ||
+                              rejectMutation.isPending
+                            }
+                            aria-label="Accept / verify"
+                            title="Accept (verify)"
+                            className="inline-flex size-6 items-center justify-center rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {approveMutation.isPending &&
+                            approveMutation.variables === r.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Check className="size-3.5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleReject(r.id)}
+                            disabled={
+                              approveMutation.isPending ||
+                              rejectMutation.isPending
+                            }
+                            aria-label="Reject / delete"
+                            title="Reject (delete)"
+                            className="inline-flex size-6 items-center justify-center rounded bg-stone-300 text-stone-700 hover:bg-stone-400 dark:bg-stone-700 dark:text-stone-200 dark:hover:bg-stone-600 disabled:opacity-50"
+                          >
+                            {rejectMutation.isPending &&
+                            rejectMutation.variables === r.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <X className="size-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-stone-300 dark:text-stone-700">
+                          ·
+                        </span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             {!isLoading && rows.length === 0 && (
@@ -352,6 +441,42 @@ export function ReportTable({
                   <Monitor className="size-3" /> Mirror
                 </button>
               </div>
+
+              {/* Admin accept / reject for on-hold submissions (mobile) */}
+              {isAdmin && r.status === "onhold" && (
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    onClick={() => handleApprove(r.id)}
+                    disabled={
+                      approveMutation.isPending || rejectMutation.isPending
+                    }
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded bg-emerald-600 px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {approveMutation.isPending &&
+                    approveMutation.variables === r.id ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <Check className="size-3" />
+                    )}
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleReject(r.id)}
+                    disabled={
+                      approveMutation.isPending || rejectMutation.isPending
+                    }
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded bg-stone-300 px-2 py-1.5 text-[11px] font-semibold text-stone-700 hover:bg-stone-400 dark:bg-stone-700 dark:text-stone-200 dark:hover:bg-stone-600 disabled:opacity-50"
+                  >
+                    {rejectMutation.isPending &&
+                    rejectMutation.variables === r.id ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <X className="size-3" />
+                    )}
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
           ))}
       </div>
