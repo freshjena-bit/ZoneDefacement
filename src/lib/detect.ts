@@ -12,10 +12,11 @@ import { db } from "@/lib/db";
 // ---- Special (government / academic) domain detection ----------------------
 
 /**
- * Returns true if the domain belongs to a government / military / academic
- * institution. Covers TLDs like: .gov, .gov.uk, .gov.vn, .gov.th, .gov.au,
- * .gov.br, .gov.in, .gov.my, .gov.ph, .gov.sg, .go.id, .go.th, .go.jp,
- * .ac.id, .ac.uk, .ac.jp, .gob.es, .mil, .edu, .edu.sg, .edu.au, etc.
+ * Returns true if the domain belongs to a government / military / academic /
+ * school institution. Covers TLDs like: .gov, .gov.uk, .gov.vn, .gov.th,
+ * .gov.au, .gov.br, .gov.in, .gov.my, .gov.ph, .gov.sg, .go.id, .go.th,
+ * .go.jp, .ac.id, .ac.uk, .ac.jp, .sch.id, .sch.uk, .sch.gr, .gob.es, .mil,
+ * .edu, .edu.sg, .edu.au, etc.
  */
 export function isSpecialDomain(domain: string): boolean {
   const d = domain.toLowerCase().replace(/^www\./, "");
@@ -28,11 +29,15 @@ export function isSpecialDomain(domain: string): boolean {
   // Direct government / military / education TLDs.
   if (last === "gov" || last === "mil" || last === "edu") return true;
 
-  // Second-level gov/academic token + a country TLD, e.g. gov.id, go.id,
-  // ac.id, gov.uk, gov.vn, gob.es, edu.au, mil.br, ...
-  const govTokens = ["gov", "go", "gob", "ac", "edu", "mil"];
+  // Second-level gov/academic/school token + a country TLD, e.g. gov.id,
+  // go.id, ac.id, sch.id, gov.uk, gov.vn, gob.es, edu.au, mil.br, ...
+  //   gov / go / gob  → government
+  //   ac / edu        → higher education / university
+  //   sch             → primary/secondary school (e.g. .sch.id, .sch.uk)
+  //   mil             → military
+  const specialTokens = ["gov", "go", "gob", "ac", "edu", "sch", "mil"];
   if (
-    govTokens.includes(second) &&
+    specialTokens.includes(second) &&
     last.length >= 2 &&
     last.length <= 3 &&
     !["com", "net", "org", "co"].includes(last)

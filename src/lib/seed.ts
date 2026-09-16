@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { recomputeAllLevels } from "@/lib/level";
+import { isSpecialDomain } from "@/lib/detect";
 
 /**
  * Idempotently seed the database with ~60 realistic synthetic website
@@ -249,7 +250,7 @@ export async function seedIfEmpty(): Promise<void> {
     const isHome = maybe(0.7);
     const isMass = maybe(0.25);
     const isRedeface = maybe(0.1);
-    const isSpecial = maybe(0.2);
+    const isSpecial = isSpecialDomain(domain);
     // ~85% approved, ~15% onhold
     const status = maybe(0.85) ? "approved" : "onhold";
 

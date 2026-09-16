@@ -624,3 +624,42 @@ Stage Summary:
 - All user-facing copy is now clean and professional — no casual/"security research" framing.
   Consistent tagline across metadata, hero, footer, CTA, and notify dialog: "A global defacement
   mirror database tracking verified web defacements, attacker rankings, and incident evidence."
+
+---
+Task ID: 17
+Agent: main (orchestrator)
+Task: Auto-flag school domains (.ac.id, .sch.id) as Special.
+
+User requirement:
+- Add "special" auto-detection for school websites like .ac.id and .sch.id.
+
+Work Log:
+- src/lib/detect.ts isSpecialDomain():
+  - Added "sch" to the special-tokens list (now: gov, go, gob, ac, edu, sch, mil).
+  - This covers .sch.id (Indonesian schools), .sch.uk (UK schools), .sch.gr (Greek schools), etc.
+  - .ac.id was already detected via the "ac" token — confirmed still working.
+  - Updated docstring to list .sch.id, .sch.uk, .sch.gr examples.
+- src/lib/seed.ts:
+  - Replaced `const isSpecial = maybe(0.2)` (random 20%) with `const isSpecial = isSpecialDomain(domain)`
+    so seeded data matches the real detection logic. Fresh seeds will now correctly flag all
+    school/gov/edu domains as special.
+- Backfilled 266 existing records: scanned every record, recomputed isSpecial via the updated
+  detector, updated 203 records that had the wrong (random) flag. Result: 236 special records
+  (up from ~52 with the old random flag).
+
+Verification:
+- Unit test (19 cases, all pass): .sch.id ✓, .sch.uk ✓, .sch.gr ✓, .ac.id ✓, .ac.uk ✓, .go.id ✓,
+  .gov.* ✓, .mil ✓, .edu ✓, and non-special domains (example.com, .web.id, .co.uk, .org) correctly
+  return false.
+- API test: POST /api/defacements with https://sman3jakarta.sch.id/ → detected: special=True,
+  country=ID. ✓
+- Browser: /special view now shows 236 records including sman3jakarta.sch.id and
+  perpustakaan.sman1karangmojo.sch.id. ✓
+- Lint: 0 errors. Console: no errors. Dev log: clean.
+
+Stage Summary:
+- School domains (.ac.id, .sch.id, .sch.uk, .sch.gr, .ac.uk, .ac.jp, etc.) are now auto-flagged
+  as Special on submission, alongside government (.gov/.go.id/.gob.es), military (.mil), and
+  education (.edu) domains.
+- Seeded data backfilled so the /special archive view immediately reflects all school/gov/edu
+  domains. New submissions and fresh seeds use the real isSpecialDomain() detector.
