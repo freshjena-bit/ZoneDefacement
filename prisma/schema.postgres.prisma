@@ -1,0 +1,42 @@
+// Prisma schema for PRODUCTION (Supabase / PostgreSQL).
+// This file is identical to schema.prisma except the datasource provider
+// is "postgresql". Use `bun run db:use-postgres` to copy it into
+// prisma/schema.prisma before deploying to Vercel + Supabase.
+//
+// Local development uses SQLite (prisma/schema.sqlite.prisma). Switch back
+// with `bun run db:use-sqlite`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")      // Supabase pooler URL (port 6543), pgbouncer=true
+  directUrl = env("DIRECT_URL")       // Supabase direct URL (port 5432) for migrations
+}
+
+// A single mirrored website defacement record.
+model Defacement {
+  id            String   @id @default(cuid())
+  attacker      String
+  team          String?
+  targetUrl     String
+  targetDomain  String
+  os            String   @default("Unknown")
+  countryCode   String?
+  isHome        Boolean  @default(false)
+  isMass        Boolean  @default(false)
+  isRedeface    Boolean  @default(false)
+  isSpecial     Boolean  @default(false)
+  reporterLevel String   @default("ROOKIE") // LEGEND | PRO | ELITE | ROOKIE
+  status        String   @default("approved") // approved | onhold
+  mirrorHtml    String
+  mirrorTitle   String?
+  capturedAt    DateTime @default(now())
+
+  @@index([status])
+  @@index([attacker])
+  @@index([team])
+  @@index([capturedAt])
+}

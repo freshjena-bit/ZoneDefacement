@@ -663,3 +663,67 @@ Stage Summary:
   education (.edu) domains.
 - Seeded data backfilled so the /special archive view immediately reflects all school/gov/edu
   domains. New submissions and fresh seeds use the real isSpecialDomain() detector.
+
+---
+Task ID: 18
+Agent: main (orchestrator)
+Task: Make the app deployable to Vercel with Supabase (PostgreSQL) as the database.
+
+User requirement:
+- Buat agar bisa di run di vercel dan pake database supabase.
+
+Work Log:
+- prisma/schema.postgres.prisma (NEW): identical models to the SQLite schema but
+  provider = "postgresql", with url=env(DATABASE_URL) (Supabase pooler, port 6543)
+  + directUrl=env(DIRECT_URL) (Supabase direct, port 5432) for migrations.
+- prisma/schema.sqlite.prisma (NEW): saved the SQLite schema so both providers
+  are kept side-by-side; the active prisma/schema.prisma is whichever was last
+  switched to.
+- scripts/switch-db.mjs (NEW): one-command schema provider switch. Copies the
+  matching schema.<provider>.prisma → schema.prisma + runs `prisma generate`.
+  `bun run db:use-sqlite` / `bun run db:use-postgres`.
+- package.json:
+  - build: simplified to `next build` (was standalone copy — not needed on Vercel).
+  - start: `next start -p 3000`.
+  - postinstall: `prisma generate` (Vercel runs this automatically after install).
+  - db:use-sqlite / db:use-postgres scripts.
+- next.config.ts: removed `output: "standalone"` (Vercel handles builds natively).
+- .env.example (NEW): documents DATABASE_URL for SQLite (local) and the two
+  Supabase URLs (DATABASE_URL pooler + DIRECT_URL direct) for production, plus
+  AUTH_SECRET for the admin session HMAC.
+- DEPLOYMENT.md (NEW): step-by-step Vercel + Supabase guide — create Supabase
+  project, get connection strings, switch schema, db push, deploy to Vercel
+  with env vars, verify. Includes the local SQLite dev path too.
+- .gitignore: un-ignored .env.example (so the template is committed), added
+  /db/*.db + /db/*.db-journal (local SQLite not committed).
+
+Why two schemas instead of driver adapters:
+- @prisma/adapter-pglite does not exist on npm, and no local PostgreSQL server
+  can be installed in the sandbox (no sudo). The two-schema + switch-script
+  approach keeps the sandbox fully working on SQLite while making the app
+  100% production-ready for Vercel + Supabase with a single command
+  (`bun run db:use-postgres`). The models are identical for both providers, so
+  all app code is database-agnostic.
+- Supabase works with standard Prisma (no driver adapter needed) when using the
+  pooler URL with `?pgbouncer=true&connection_limit=1` for runtime and the
+  direct URL for migrations — this is Supabase's recommended setup.
+
+Verification:
+- SQLite schema (active): valid, dev server healthy, 228 verified records load,
+  GET / → 200, GET /api/stats → 200. Lint: 0 errors.
+- Switch script round-trip tested: `db:use-postgres` → provider=postgresql,
+  Prisma Client regenerated; `db:use-sqlite` → provider=sqlite, regenerated.
+  Dev server recovered after each switch; queries work.
+- Agent Browser: home loads, "ZoneDefacement — Global Defacement Mirror Archive",
+  GadaLuBau PRO shows in rankings, no console/page errors.
+- postgres schema structurally valid (needs DIRECT_URL env to fully validate —
+  set in production).
+
+Stage Summary:
+- The app is now Vercel + Supabase ready. Deploy path:
+  1. `bun run db:use-postgres` (switch schema to PostgreSQL)
+  2. Set DATABASE_URL (pooler) + DIRECT_URL (direct) + AUTH_SECRET in .env / Vercel
+  3. `bun run db:push` (create tables in Supabase)
+  4. Push to GitHub → import on Vercel → deploy (postinstall runs prisma generate)
+- Local sandbox continues to use SQLite (no external DB needed) via `db:use-sqlite`.
+- Documentation: .env.example (env var templates) + DEPLOYMENT.md (full guide).

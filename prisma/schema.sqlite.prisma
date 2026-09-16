@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A single mirrored website defacement record.
+// Modeled after Zone-H-style defacement mirror archives.
+model Defacement {
+  id            String   @id @default(cuid())
+  attacker      String
+  team          String?
+  targetUrl     String
+  targetDomain  String
+  os            String   @default("Unknown")
+  countryCode   String?
+  isHome        Boolean  @default(false)
+  isMass        Boolean  @default(false)
+  isRedeface    Boolean  @default(false)
+  isSpecial     Boolean  @default(false)
+  reporterLevel String   @default("ROOKIE") // ADMIN | LEGEND | ELITE | PRO | ROOKIE
+  status        String   @default("approved") // approved | onhold
+  mirrorHtml    String
+  mirrorTitle   String?
+  capturedAt    DateTime @default(now())
+
+  @@index([status])
+  @@index([attacker])
+  @@index([team])
+  @@index([capturedAt])
+}
