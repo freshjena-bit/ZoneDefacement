@@ -3,6 +3,7 @@ import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { seedIfEmpty } from "@/lib/seed";
+import { levelForVerifiedCount } from "@/lib/level";
 import {
   detectCountry,
   detectOs,
@@ -137,13 +138,6 @@ export async function GET(req: Request) {
 
 // ---------- POST: notify / submit a new defacement ----------
 
-function levelForCount(count: number): string {
-  if (count >= 500) return "LEGEND";
-  if (count >= 100) return "ELITE";
-  if (count >= 10) return "PRO";
-  return "ROOKIE";
-}
-
 function safeParseUrl(raw: string): { url: string; domain: string } | null {
   let s = (raw ?? "").trim();
   if (!s) return null;
@@ -216,21 +210,13 @@ export async function POST(req: Request) {
     const MAX_URLS = mode === "mass" ? 20 : 1;
     const urls = rawUrls.slice(0, MAX_URLS);
 
-    // Determine reporterLevel once: reuse existing attacker's level, ADMIN for
-    // `sam`, otherwise compute from their existing count.
-    let reporterLevel = "ROOKIE";
-    const existing = await db.defacement.findFirst({
-      where: { attacker },
-      select: { reporterLevel: true },
+    // Determine reporterLevel from the attacker's count of VERIFIED
+    // (approved) defacements. On-hold submissions don't count toward the
+    // level — only accepted mirrors do. ADMIN is a staff override.
+    const verifiedCount = await db.defacement.count({
+      where: { attacker, status: "approved" },
     });
-    if (existing) {
-      reporterLevel = existing.reporterLevel;
-    } else if (attacker.toLowerCase() === "sam") {
-      reporterLevel = "ADMIN";
-    } else {
-      const cnt = await db.defacement.count({ where: { attacker } });
-      reporterLevel = levelForCount(cnt);
-    }
+    const reporterLevel = levelForVerifiedCount(verifiedCount, attacker);
 
     // Process every URL with limited concurrency. Each URL auto-detects its
     // own country, OS, special/redeface/home flags, and captures the mirror.

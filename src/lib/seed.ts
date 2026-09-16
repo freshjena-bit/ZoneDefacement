@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { recomputeAllLevels } from "@/lib/level";
 
 /**
  * Idempotently seed the database with ~60 realistic synthetic website
@@ -10,6 +11,7 @@ import { db } from "@/lib/db";
 interface AttackerRoster {
   name: string;
   team: string;
+  /** Historical hint; the actual level is recomputed from the verified count. */
   level: "ADMIN" | "LEGEND" | "ELITE" | "PRO" | "ROOKIE";
   weight: number;
 }
@@ -209,7 +211,8 @@ export async function seedIfEmpty(): Promise<void> {
     records.push({
       attacker: a.name,
       team: a.team,
-      reporterLevel: a.level,
+      // Placeholder — recomputed from the verified count after seeding.
+      reporterLevel: "ROOKIE",
       targetUrl,
       targetDomain: domain,
       os,
@@ -254,4 +257,8 @@ export async function seedIfEmpty(): Promise<void> {
       })),
     });
   }
+
+  // Derive every attacker's level from their VERIFIED (approved) count so the
+  // badges reflect real activity rather than the roster hint.
+  await recomputeAllLevels();
 }

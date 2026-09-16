@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { seedIfEmpty } from "@/lib/seed";
 import { getSession } from "@/lib/auth";
+import { recomputeAttackerLevel } from "@/lib/level";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,7 +66,12 @@ export async function PATCH(
         where: { id },
         data: { status: "approved" },
       });
-      return NextResponse.json({ defacement: updated });
+      // The attacker's verified count just increased — recompute their level
+      // and backfill it across all their records so badges stay consistent.
+      await recomputeAttackerLevel(updated.attacker);
+      // Re-fetch so the returned record carries the (possibly bumped) level.
+      const refreshed = await db.defacement.findUnique({ where: { id } });
+      return NextResponse.json({ defacement: refreshed ?? updated });
     }
 
     if (action === "reject") {

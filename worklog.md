@@ -338,3 +338,59 @@ Stage Summary:
 - Accept (verify) moves on-hold → approved; Reject permanently deletes the on-hold submission.
 - Actions available in both the archive table (ACTIONS column) and the mirror view top bar — only for on-hold rows, only when logged in as admin.
 - PATCH endpoint is admin-gated (401 without session). All flows verified end-to-end.
+
+---
+Task ID: 10
+Agent: main (orchestrator)
+Task: Reporter level (ROOKIE→LEGEND) derived from count of VERIFIED (approved) defacements.
+
+User requirement:
+- Rank dari rookie sampai legend tergantung banyaknya archive yang verified.
+- (Only approved defacements count toward the level; on-hold submissions do not.)
+
+Work Log:
+- Created src/lib/level.ts:
+  - levelForVerifiedCount(verifiedCount, attacker): ADMIN override for "sam" (staff), else thresholds:
+    LEGEND ≥ 15, ELITE ≥ 7, PRO ≥ 3, ROOKIE < 3 (scaled for the archive's data volume).
+  - recomputeAttackerLevel(attacker): count approved → compute level → backfill ALL that attacker's
+    records (updateMany). Skips the write when the level is unchanged (cheap idempotent probe).
+  - recomputeAllLevels(): recompute every attacker in the archive.
+- Updated POST /api/defacements: new submission's reporterLevel = levelForVerifiedCount(current
+  approved count for that attacker). On-hold submissions don't increase the count, so a pending
+  submission never bumps the level. Removed the old levelForCount() helper and the "reuse existing
+  stored level" logic.
+- Updated PATCH /api/defacements/[id] (approve): after setting status=approved, calls
+  recomputeAttackerLevel(updated.attacker) so the badge bumps if a threshold was crossed, and
+  backfills all the attacker's records. Returns the refreshed record.
+- Updated src/lib/seed.ts: records are seeded with a placeholder level "ROOKIE", then
+  recomputeAllLevels() runs at the end so seeded levels reflect real verified counts (the roster's
+  hardcoded `level` is now just a historical hint, not used).
+- Updated GET /api/stats: calls recomputeAllLevels() on each call as a self-healing safety net
+  (skips writes when levels are already correct → cheap after first run). This backfills any
+  pre-existing records that had the old hardcoded levels.
+
+Verification (API + Agent Browser):
+- Stats API after recompute — levels match verified counts:
+    GadaLuBau  16 verified → LEGEND ✓
+    1ND0TR0J4N X 11 verified → ELITE ✓  (was hardcoded LEGEND before; now correctly ELITE)
+    sam  4 verified → ADMIN (staff override) ✓
+    0x6ick  2 verified → ROOKIE ✓
+- Home page Top 10 Attacker panel + Latest Report table + Rank view all show the recomputed levels.
+- Dynamic bump test (0x6ick):
+    BEFORE: 0x6ick = 2 verified → ROOKIE.
+    Submitted a new on-hold defacement for 0x6ick → created with level ROOKIE (pending doesn't count).
+    Logged in as admin (GadaLuBau/slametwkw), accepted it → 3 verified.
+    AFTER: 0x6ick = 3 verified → PRO. PATCH returned refreshed record with level PRO.
+    All 0x6ick's records backfilled to PRO (badges consistent everywhere).
+    Home ranking now shows "0x6ick PRO" (was ROOKIE).
+- Lint: 0 errors. Dev log: clean. Console: no errors.
+
+Stage Summary:
+- Reporter levels are now purely a function of the count of VERIFIED (approved) defacements:
+    LEGEND ≥ 15 · ELITE ≥ 7 · PRO ≥ 3 · ROOKIE < 3 · ADMIN = staff override (sam).
+- On-hold/pending submissions do NOT count — only accepted mirrors do.
+- Levels auto-update whenever a defacement is approved (recompute + backfill all that attacker's
+  records), so badges stay consistent across the home rankings, archive table, mirror view, and
+  rank view.
+- Self-healing: the stats endpoint recomputes on each load (no-op write when already correct), so
+  any drift from older data is automatically fixed.

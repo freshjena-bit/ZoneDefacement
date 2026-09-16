@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { seedIfEmpty } from "@/lib/seed";
+import { recomputeAllLevels } from "@/lib/level";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await seedIfEmpty();
+    // Self-heal reporter levels: recompute from verified counts. Skips writes
+    // when levels are already correct, so this is cheap after the first run.
+    await recomputeAllLevels();
 
     const now = new Date();
     const startOfToday = new Date(
