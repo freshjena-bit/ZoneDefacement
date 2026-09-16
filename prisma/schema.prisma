@@ -10,32 +10,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// A website that has been archived. One site can have many snapshots over time.
-model Site {
-  id              String     @id @default(cuid())
-  url             String     @unique // normalized URL (with protocol, no trailing slash)
-  domain          String
-  title           String
-  description     String?
-  favicon         String?
-  createdAt       DateTime   @default(now())
-  lastArchivedAt  DateTime?
-  snapshots       Snapshot[]
-}
-
-// A single point-in-time capture of a site's content.
-model Snapshot {
+// A single mirrored website defacement record.
+// Modeled after Zone-H-style defacement mirror archives.
+model Defacement {
   id            String   @id @default(cuid())
-  siteId        String
-  site          Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  attacker      String
+  team          String?
+  targetUrl     String
+  targetDomain  String
+  os            String   @default("Unknown")
+  countryCode   String?
+  isHome        Boolean  @default(false)
+  isMass        Boolean  @default(false)
+  isRedeface    Boolean  @default(false)
+  isSpecial     Boolean  @default(false)
+  reporterLevel String   @default("ROOKIE") // ADMIN | LEGEND | ELITE | PRO | ROOKIE
+  status        String   @default("approved") // approved | onhold
+  mirrorHtml    String
+  mirrorTitle   String?
   capturedAt    DateTime @default(now())
-  title         String
-  excerpt       String?  // short text excerpt
-  html          String   // extracted HTML content from page_reader
-  text          String?  // plain text version
-  status        String   @default("success") // success | failed
-  httpStatus    Int?
-  contentLength Int?     // bytes
-  publishedTime String?  // original article publish time if available
-  captureMs     Int?     // how long the capture took
+
+  @@index([status])
+  @@index([attacker])
+  @@index([team])
+  @@index([capturedAt])
 }

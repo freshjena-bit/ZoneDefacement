@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { seedIfEmpty } from "@/lib/seed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,21 +10,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    await seedIfEmpty();
     const { id } = await params;
-    if (!id) {
-      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    const def = await db.defacement.findUnique({ where: { id } });
+    if (!def) {
+      return NextResponse.json(
+        { error: "Defacement not found" },
+        { status: 404 },
+      );
     }
-
-    const snapshot = await db.snapshot.findUnique({
-      where: { id },
-      include: { site: true },
-    });
-
-    if (!snapshot) {
-      return NextResponse.json({ error: "Snapshot not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ snapshot, site: snapshot.site }, { status: 200 });
+    return NextResponse.json({ defacement: def });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message ?? "Internal server error" },

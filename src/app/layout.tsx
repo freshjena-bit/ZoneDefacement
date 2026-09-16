@@ -14,29 +14,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TimeVault — Web Mirror Archive",
+  title: "SAM1337 — Defacement Mirror & Cyber Vandalism Database",
   description:
-    "Archive any webpage as a time-stamped snapshot. Browse historical captures, compare changes over time, and keep the web's memory alive.",
+    "A Zone-H-style defacement mirror archive. Browse mirrored website defacements with attacker attribution, rankings, and historical captures for security research.",
   keywords: [
-    "TimeVault",
-    "web archive",
-    "wayback machine",
-    "snapshot",
-    "web preservation",
+    "SAM1337",
+    "defacement mirror",
+    "zone-h",
+    "cyber vandalism",
+    "web defacement archive",
+    "security research",
   ],
-  authors: [{ name: "TimeVault" }],
+  authors: [{ name: "SAM1337" }],
   openGraph: {
-    title: "TimeVault — Web Mirror Archive",
+    title: "SAM1337 — Defacement Mirror & Cyber Vandalism Database",
     description:
-      "Capture the web. Preserve it forever. Archive any webpage as a time-stamped snapshot.",
-    siteName: "TimeVault",
+      "A Zone-H-style defacement mirror archive for security research & historical preservation.",
+    siteName: "SAM1337",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TimeVault — Web Mirror Archive",
+    title: "SAM1337 — Defacement Mirror Archive",
     description:
-      "Capture the web. Preserve it forever. Archive any webpage as a time-stamped snapshot.",
+      "A Zone-H-style defacement mirror archive for security research & historical preservation.",
   },
 };
 
