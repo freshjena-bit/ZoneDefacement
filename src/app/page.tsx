@@ -212,11 +212,15 @@ export default function Home() {
             navigate({ name: "home" }, true);
           }
         }}
-        onSubmitted={() => {
+        onSubmitted={(info) => {
           setArchiveRefreshKey((k) => k + 1);
-          // Switch to the on-hold archive view so the user sees their new
-          // submission pending review.
-          navigate({ name: "archive", filter: { status: "onhold" } });
+          // If the submission was auto-verified, show it in the verified
+          // archive; otherwise show the on-hold queue.
+          if (info && info.verified > 0 && info.onhold === 0) {
+            navigate({ name: "archive", filter: { status: "approved" } });
+          } else {
+            navigate({ name: "archive", filter: { status: "onhold" } });
+          }
         }}
       />
     </div>

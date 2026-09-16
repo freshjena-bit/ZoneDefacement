@@ -16,12 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateDefacement } from "./hooks";
-import type { NotifyPayload } from "./types";
+import type { NotifyPayload, NotifyResult } from "./types";
 
 interface NotifyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmitted?: () => void;
+  onSubmitted?: (result: NotifyResult) => void;
 }
 
 type Mode = "single" | "mass";
@@ -92,6 +92,7 @@ export function NotifyDialog({
     mutation.mutate(payload, {
       onSuccess: (res) => {
         const n = res.count;
+        const v = res.verified;
         const s = res.detected.sample;
         const detectionLine = s
           ? `Detected — country: ${s.country ?? "?"} · OS: ${s.os}${
@@ -100,14 +101,39 @@ export function NotifyDialog({
               s.isMass ? " · mass" : s.isHome ? " · home" : ""
             }`
           : undefined;
-        toast.success(
-          n === 1
-            ? "Mirror captured — pending review"
-            : `${n} mirrors captured — pending review`,
-          { description: detectionLine },
-        );
+
+        if (v === n && n > 0) {
+          // All auto-verified.
+          toast.success(
+            n === 1
+              ? "Mirror auto-verified ✓"
+              : `${n} mirrors auto-verified ✓`,
+            {
+              description: detectionLine
+                ? `${detectionLine}\nSignature "hacked by ${attacker.trim()}" matched — moved to verified.`
+                : `Signature matched — moved to verified.`,
+            },
+          );
+        } else if (v > 0) {
+          // Some verified, some on hold.
+          toast.warning(`${v} auto-verified · ${res.onhold} on hold`, {
+            description: detectionLine ?? undefined,
+          });
+        } else {
+          // None verified — all on hold.
+          toast.info(
+            n === 1
+              ? "Mirror captured — pending review"
+              : `${n} mirrors captured — pending review`,
+            {
+              description: detectionLine
+                ? `${detectionLine}\nNo "hacked by ${attacker.trim()}" signature found — queued for admin review.`
+                : `No attacker signature found — queued for admin review.`,
+            },
+          );
+        }
         onOpenChange(false);
-        onSubmitted?.();
+        onSubmitted?.(res);
       },
       onError: (err: unknown) => {
         const msg = err instanceof Error ? err.message : "Submit failed";

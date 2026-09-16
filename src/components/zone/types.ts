@@ -82,6 +82,8 @@ export interface NotifyResult {
   defacements: DefacementFull[];
   skipped: Array<{ error: string; targetUrl: string }>;
   count: number;
+  verified: number;
+  onhold: number;
   detected: {
     sample: {
       country: string | null;
@@ -90,6 +92,8 @@ export interface NotifyResult {
       isMass: boolean;
       isRedeface: boolean;
       isSpecial: boolean;
+      autoVerified: boolean;
+      status: string;
     } | null;
   };
 }

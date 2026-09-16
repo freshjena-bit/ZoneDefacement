@@ -3,7 +3,8 @@ import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { seedIfEmpty } from "@/lib/seed";
-import { levelForVerifiedCount } from "@/lib/level";
+import { levelForVerifiedCount, recomputeAttackerLevel } from "@/lib/level";
+import { mirrorSignatureMatches } from "@/lib/verify";
 import {
   detectCountry,
   detectOs,
@@ -264,6 +265,13 @@ export async function POST(req: Request) {
 
       const mirrorTitle = `${attacker} — ${parsed.domain}`;
 
+      // Auto-verification: if the mirrored page contains a defacement
+      // signature attributed to this attacker ("hacked by {name}" or
+      // "touched by {name}", case-insensitive), auto-approve it. Otherwise
+      // place it on hold for manual admin review.
+      const autoVerified = mirrorSignatureMatches(mirrorHtml, attacker);
+      const status = autoVerified ? "approved" : "onhold";
+
       const record = await db.defacement.create({
         data: {
           attacker,
@@ -277,13 +285,19 @@ export async function POST(req: Request) {
           isRedeface,
           isSpecial,
           reporterLevel,
-          status: "onhold",
+          status,
           mirrorHtml,
           mirrorTitle,
         },
       });
 
-      return record;
+      // If auto-verified, the attacker's verified count just increased —
+      // recompute their level and backfill it across all their records.
+      if (autoVerified) {
+        await recomputeAttackerLevel(attacker);
+      }
+
+      return { ...record, autoVerified };
     });
 
     // Separate successes from invalid-URL skips.
@@ -295,11 +309,17 @@ export async function POST(req: Request) {
       (c): c is { error: string; targetUrl: string } => "error" in c,
     );
 
+    // Count how many were auto-verified vs put on hold.
+    const autoVerifiedCount = ok.filter((r) => r.autoVerified).length;
+    const onholdCount = ok.length - autoVerifiedCount;
+
     return NextResponse.json(
       {
         defacements: ok,
         skipped: failed,
         count: ok.length,
+        verified: autoVerifiedCount,
+        onhold: onholdCount,
         detected: {
           // Surface what was auto-detected so the UI can confirm it.
           sample: ok[0]
@@ -310,6 +330,8 @@ export async function POST(req: Request) {
                 isMass: ok[0].isMass,
                 isRedeface: ok[0].isRedeface,
                 isSpecial: ok[0].isSpecial,
+                autoVerified: ok[0].autoVerified,
+                status: ok[0].status,
               }
             : null,
         },
