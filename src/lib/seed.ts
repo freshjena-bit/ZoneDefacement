@@ -3,7 +3,7 @@ import { recomputeAllLevels } from "@/lib/level";
 
 /**
  * Idempotently seed the database with ~60 realistic synthetic website
- * defacement records (Zone-H-style mirror archive). Only seeds when the
+ * defacement records (ZoneDefacement mirror archive). Only seeds when the
  * Defacement table is empty. No network calls — all mirror HTML is generated
  * locally so the UI is populated immediately on first run.
  */

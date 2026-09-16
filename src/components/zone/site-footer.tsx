@@ -15,7 +15,7 @@ export function SiteFooter() {
           </span>
         </div>
         <p className="max-w-2xl text-xs text-stone-400 dark:text-stone-500">
-          A Zone-H-style cyber vandalism database. Built for security research &amp; historical preservation.
+          A ZoneDefacement cyber vandalism database. Built for security research &amp; historical preservation.
         </p>
       </div>
     </footer>

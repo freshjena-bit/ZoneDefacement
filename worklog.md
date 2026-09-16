@@ -517,3 +517,28 @@ Stage Summary:
 - App renamed SAM1337 → ZoneDefacement throughout (brand, metadata, cookie,
   user-agent, seeded mirror HTML). Admin login (GadaLuBau/slametwkw) unchanged.
 - The "sam" attacker in the roster is unrelated to the brand and was left as-is.
+
+---
+Task ID: 14
+Agent: main (orchestrator)
+Task: Replace "zone-h style mirror archive" tagline → "ZONEDEFACEMENT MIRROR ARCHIVE".
+
+Work Log:
+- home-view.tsx: hero pill badge "Zone-H Style Mirror Archive" → "ZONEDEFACEMENT MIRROR ARCHIVE".
+- layout.tsx: metadata description "A Zone-H-style defacement mirror archive..." →
+  "A ZoneDefacement mirror archive..."; og/twitter descriptions likewise.
+- layout.tsx: SEO keywords — removed "zone-h", added "zonedefacement".
+- site-footer.tsx: "A Zone-H-style cyber vandalism database..." →
+  "A ZoneDefacement cyber vandalism database...".
+- seed.ts: comment "Zone-H-style mirror archive" → "ZoneDefacement mirror archive".
+
+Verification:
+- Browser: hero badge text = "ZONEDEFACEMENT MIRROR ARCHIVE". ✓
+- Footer: "A ZoneDefacement cyber vandalism database". ✓
+- No "zone-h" references remain anywhere in src. ✓
+- Lint: 0 errors. Dev log: clean.
+
+Stage Summary:
+- Fully rebranded the descriptive tagline away from "Zone-H-style" to the ZoneDefacement brand.
+- The visible hero subtitle is now the uppercase "ZONEDEFACEMENT MIRROR ARCHIVE" pill; all
+  metadata/footer descriptions use "ZoneDefacement" instead of "Zone-H-style".
