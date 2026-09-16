@@ -58,15 +58,30 @@ export interface ArchiveFilter {
   team?: string;
 }
 
-/** Payload for the POST /api/defacements notify/submit form. */
+/** Payload for the POST /api/defacements notify/submit form.
+ *  Only mode, URL(s), attacker and team are collected from the user.
+ *  OS, country, and Home/Mass/Redeface/Special flags are auto-detected
+ *  by the backend. */
 export interface NotifyPayload {
-  targetUrl: string;
+  mode: "single" | "mass";
+  urls: string[];
   attacker: string;
   team?: string;
-  os: string;
-  countryCode?: string;
-  isHome: boolean;
-  isMass: boolean;
-  isRedeface: boolean;
-  isSpecial: boolean;
+}
+
+/** Response returned by POST /api/defacements. */
+export interface NotifyResult {
+  defacements: DefacementFull[];
+  skipped: Array<{ error: string; targetUrl: string }>;
+  count: number;
+  detected: {
+    sample: {
+      country: string | null;
+      os: string;
+      isHome: boolean;
+      isMass: boolean;
+      isRedeface: boolean;
+      isSpecial: boolean;
+    } | null;
+  };
 }

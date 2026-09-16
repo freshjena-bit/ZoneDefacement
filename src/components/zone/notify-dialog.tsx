@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Sparkles, Layers, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -14,14 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useCreateDefacement } from "./hooks";
 import type { NotifyPayload } from "./types";
 
@@ -31,40 +24,18 @@ interface NotifyDialogProps {
   onSubmitted?: () => void;
 }
 
-const OS_OPTIONS = ["Linux", "Windows", "FreeBSD", "Unix", "Unknown"];
-const COUNTRY_OPTIONS = [
-  { code: "ID", name: "Indonesia" },
-  { code: "US", name: "United States" },
-  { code: "SG", name: "Singapore" },
-  { code: "IN", name: "India" },
-  { code: "MY", name: "Malaysia" },
-  { code: "BR", name: "Brazil" },
-  { code: "DE", name: "Germany" },
-  { code: "PH", name: "Philippines" },
-  { code: "VN", name: "Vietnam" },
-  { code: "TH", name: "Thailand" },
-  { code: "PK", name: "Pakistan" },
-  { code: "BD", name: "Bangladesh" },
-  { code: "TR", name: "Turkey" },
-  { code: "RU", name: "Russia" },
-  { code: "EG", name: "Egypt" },
-  { code: "NG", name: "Nigeria" },
-];
+type Mode = "single" | "mass";
 
 export function NotifyDialog({
   open,
   onOpenChange,
   onSubmitted,
 }: NotifyDialogProps) {
-  const [targetUrl, setTargetUrl] = useState("");
+  const [mode, setMode] = useState<Mode>("single");
+  const [url, setUrl] = useState("");
+  const [massUrls, setMassUrls] = useState("");
   const [attacker, setAttacker] = useState("");
   const [team, setTeam] = useState("");
-  const [os, setOs] = useState("Linux");
-  const [countryCode, setCountryCode] = useState("ID");
-  const [isHome, setIsHome] = useState(true);
-  const [isMass, setIsMass] = useState(false);
-  const [isRedeface, setIsRedeface] = useState(false);
-  const [isSpecial, setIsSpecial] = useState(false);
 
   const mutation = useCreateDefacement();
 
@@ -72,42 +43,69 @@ export function NotifyDialog({
   useEffect(() => {
     if (!open) {
       const t = setTimeout(() => {
-        setTargetUrl("");
+        setMode("single");
+        setUrl("");
+        setMassUrls("");
         setAttacker("");
         setTeam("");
-        setOs("Linux");
-        setCountryCode("ID");
-        setIsHome(true);
-        setIsMass(false);
-        setIsRedeface(false);
-        setIsSpecial(false);
       }, 200);
       return () => clearTimeout(t);
     }
   }, [open]);
 
+  const massCount = massUrls
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean).length;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!targetUrl.trim() || !attacker.trim()) {
-      toast.error("Target URL and attacker name are required.");
+
+    const urls =
+      mode === "single"
+        ? [url.trim()].filter(Boolean)
+        : massUrls
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean);
+
+    if (urls.length === 0) {
+      toast.error(mode === "single" ? "Target URL is required." : "Enter at least one URL.");
       return;
     }
+    if (mode === "mass" && urls.length > 20) {
+      toast.error("Mass submission limited to 20 URLs.");
+      return;
+    }
+    if (!attacker.trim()) {
+      toast.error("Attacker name is required.");
+      return;
+    }
+
     const payload: NotifyPayload = {
-      targetUrl: targetUrl.trim(),
+      mode,
+      urls,
       attacker: attacker.trim(),
       team: team.trim() || undefined,
-      os,
-      countryCode,
-      isHome,
-      isMass,
-      isRedeface,
-      isSpecial,
     };
+
     mutation.mutate(payload, {
-      onSuccess: () => {
-        toast.success("Mirror captured — pending review", {
-          description: "The defacement has been queued in the On Hold list.",
-        });
+      onSuccess: (res) => {
+        const n = res.count;
+        const s = res.detected.sample;
+        const detectionLine = s
+          ? `Detected — country: ${s.country ?? "?"} · OS: ${s.os}${
+              s.isSpecial ? " · special (gov/edu)" : ""
+            }${s.isRedeface ? " · redeface" : ""}${
+              s.isMass ? " · mass" : s.isHome ? " · home" : ""
+            }`
+          : undefined;
+        toast.success(
+          n === 1
+            ? "Mirror captured — pending review"
+            : `${n} mirrors captured — pending review`,
+          { description: detectionLine },
+        );
         onOpenChange(false);
         onSubmitted?.();
       },
@@ -129,25 +127,81 @@ export function NotifyDialog({
             Notify a new defacement
           </DialogTitle>
           <DialogDescription>
-            Submit a target URL — we&apos;ll fetch &amp; mirror the page for the
-            archive. New submissions enter the On Hold queue pending review.
+            Submit a target URL — we&apos;ll fetch &amp; mirror the page. OS,
+            country and type flags (Home / Mass / Redeface / Special) are{" "}
+            <span className="font-medium text-red-600 dark:text-red-400">
+              detected automatically
+            </span>
+            .
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-3">
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          {/* Mode toggle */}
           <div className="grid gap-1.5">
-            <Label htmlFor="nf-url">Target URL *</Label>
-            <Input
-              id="nf-url"
-              value={targetUrl}
-              onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="https://example.ac.id/"
-              required
-              autoFocus
-              className="font-mono text-sm"
-            />
+            <Label>Mirror type</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <ModeButton
+                active={mode === "single"}
+                onClick={() => setMode("single")}
+                icon={<FileText className="size-4" />}
+                title="Single"
+                desc="One URL"
+              />
+              <ModeButton
+                active={mode === "mass"}
+                onClick={() => setMode("mass")}
+                icon={<Layers className="size-4" />}
+                title="Mass"
+                desc="Many URLs at once"
+              />
+            </div>
           </div>
 
+          {/* URL input(s) */}
+          <div className="grid gap-1.5">
+            {mode === "single" ? (
+              <>
+                <Label htmlFor="nf-url">Target URL *</Label>
+                <Input
+                  id="nf-url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://example.go.id/"
+                  required
+                  autoFocus
+                  className="font-mono text-sm"
+                />
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="nf-mass">Target URLs *</Label>
+                  <span className="text-xs tabular-nums text-stone-500 dark:text-stone-400">
+                    {massCount}/20
+                  </span>
+                </div>
+                <Textarea
+                  id="nf-mass"
+                  value={massUrls}
+                  onChange={(e) => setMassUrls(e.target.value)}
+                  placeholder={
+                    "https://site1.go.id/\nhttps://site2.ac.id/\nhttps://site3.gov.vn/"
+                  }
+                  rows={6}
+                  required
+                  autoFocus
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-stone-500 dark:text-stone-400">
+                  One URL per line. Each URL is captured &amp; archived as a
+                  separate mirror, all flagged as Mass.
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* Attacker + Team */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="nf-attacker">Attacker *</Label>
@@ -172,63 +226,33 @@ export function NotifyDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="nf-os">OS</Label>
-              <Select value={os} onValueChange={setOs}>
-                <SelectTrigger id="nf-os" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {OS_OPTIONS.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Auto-detection explainer */}
+          <div className="rounded-md border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600 dark:border-stone-800 dark:bg-stone-900/60 dark:text-stone-400">
+            <div className="mb-1 flex items-center gap-1.5 font-medium text-stone-700 dark:text-stone-300">
+              <Sparkles className="size-3.5 text-red-600" />
+              Auto-detected on submit
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="nf-cc">Country</Label>
-              <Select value={countryCode} onValueChange={setCountryCode}>
-                <SelectTrigger id="nf-cc" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_OPTIONS.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.code} — {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label>Defacement types</Label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <TypeCheck
-                label="Home"
-                checked={isHome}
-                onChange={setIsHome}
-              />
-              <TypeCheck
-                label="Mass"
-                checked={isMass}
-                onChange={setIsMass}
-              />
-              <TypeCheck
-                label="Redeface"
-                checked={isRedeface}
-                onChange={setIsRedeface}
-              />
-              <TypeCheck
-                label="Special"
-                checked={isSpecial}
-                onChange={setIsSpecial}
-              />
-            </div>
+            <ul className="grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+              <li>
+                <b>Country</b> — from the server&apos;s IP (DNS → GeoIP)
+              </li>
+              <li>
+                <b>OS</b> — from the HTTP <code className="font-mono">Server</code>{" "}
+                header
+              </li>
+              <li>
+                <b>Special</b> — gov / edu TLD (e.g. .go.id, .gov.vn, .ac.id)
+              </li>
+              <li>
+                <b>Redeface</b> — domain was previously archived
+              </li>
+              <li>
+                <b>Home</b> — URL targets the site root
+              </li>
+              <li>
+                <b>Mass</b> — set when submitting multiple URLs
+              </li>
+            </ul>
           </div>
 
           <DialogFooter>
@@ -247,11 +271,17 @@ export function NotifyDialog({
             >
               {mutation.isPending ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" /> Capturing mirror…
+                  <Loader2 className="size-4 animate-spin" />
+                  {mode === "mass"
+                    ? `Capturing ${massCount || ""} mirrors…`
+                    : "Capturing mirror…"}
                 </>
               ) : (
                 <>
-                  <Send className="size-4" /> Submit
+                  <Send className="size-4" />
+                  {mode === "mass"
+                    ? `Submit ${massCount || ""} mirrors`
+                    : "Submit"}
                 </>
               )}
             </Button>
@@ -262,19 +292,46 @@ export function NotifyDialog({
   );
 }
 
-function TypeCheck({
-  label,
-  checked,
-  onChange,
+function ModeButton({
+  active,
+  onClick,
+  icon,
+  title,
+  desc,
 }: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-sm hover:bg-stone-50 dark:border-stone-800 dark:hover:bg-stone-800/60">
-      <Checkbox checked={checked} onCheckedChange={(v) => onChange(v === true)} />
-      <span className="text-stone-700 dark:text-stone-300">{label}</span>
-    </label>
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left transition " +
+        (active
+          ? "border-red-600 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+          : "border-stone-200 text-stone-600 hover:bg-stone-50 dark:border-stone-800 dark:text-stone-400 dark:hover:bg-stone-800/60")
+      }
+    >
+      <span
+        className={
+          "flex size-7 shrink-0 items-center justify-center rounded " +
+          (active
+            ? "bg-red-600 text-white"
+            : "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400")
+        }
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold leading-tight">
+          {title}
+        </span>
+        <span className="block text-xs leading-tight opacity-80">{desc}</span>
+      </span>
+    </button>
   );
 }

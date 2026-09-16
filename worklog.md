@@ -230,3 +230,64 @@ Stage Summary:
 - SAM1337 defacement mirror archive clone is complete and fully verified end-to-end.
 - All core flows work: browse home (metrics+rankings+tables), view a mirror (sandboxed iframe render), browse/filter/search archive, submit a new defacement via live page_reader capture → on-hold queue, view full rankings, toggle dark mode.
 - Faithful to zone-sam1337.com structure. Crimson theme, responsive, sticky footer, lint clean, no errors.
+
+---
+Task ID: 8
+Agent: main (orchestrator)
+Task: Simplify Notify form — only URL(s), attacker, team. Auto-detect OS, country, Home/Mass/Redeface/Special.
+
+User requirement:
+- Notify form should only collect: URL(s), attacker name, team.
+- OS, country, Home, Mass, Redeface, Special = all automatic.
+- Country from the server's IP (e.g. indo.go.id → Indonesia).
+- OS from the server (e.g. Linux).
+- Mass = a mode the user picks: Single = 1 URL, Mass = many URLs at once.
+- Redeface = domain was previously defaced, restored, then attacked again (auto via DB history).
+- Special = government/edu domain (.go.id, .gov, .gov.vn, .gov.th, .ac.id, etc.) — auto via TLD.
+
+Work Log:
+- Created src/lib/detect.ts with auto-detection helpers:
+  - isSpecialDomain(domain): gov/edu TLD regex (.gov, .gov.*, .go.id, .go.th, .ac.id, .gob.es, .mil, .edu, .edu.*, etc.)
+  - detectCountry(domain): dns.lookup → IPv4 → ip-api.com GeoIP → TLD fallback (ccTLD map).
+  - detectOs(url): fetch → Server header → map (IIS→Windows, nginx/apache/litespeed→Linux, FreeBSD→FreeBSD, CDN→Unknown).
+  - detectRedeface(domain): db.defacement.count({where:{targetDomain}}) > 0.
+  - isHomeUrl(url): URL pathname is root "/".
+  - mapWithConcurrency helper for parallel mass processing (limit 3).
+- Rewrote POST /api/defacements:
+  - Accepts { mode: 'single'|'mass', urls: string[], attacker, team } (backward-compat: also accepts single targetUrl).
+  - Mass capped at 20 URLs. Processes with concurrency 3.
+  - Per URL: auto-detects country, OS, redeface (parallel), special, home, mass; then page_reader capture → mirrorHtml; creates onhold record.
+  - Returns { defacements: [], skipped: [], count, detected: { sample } } so UI can confirm detection.
+- Updated NotifyPayload type: { mode, urls[], attacker, team? }. Added NotifyResult type.
+- Updated useCreateDefacement hook to return NotifyResult.
+- Rewrote notify-dialog.tsx:
+  - Single/Mass mode toggle (segmented buttons with icons).
+  - Single → single URL Input; Mass → Textarea (one URL per line, N/20 counter).
+  - Only Attacker + Team fields besides URL(s). Removed OS/Country/type checkboxes.
+  - Added "Auto-detected on submit" info panel listing all 6 auto-detected fields.
+  - Submit button: "Submit" (single) / "Submit N mirrors" (mass). Loading: "Capturing N mirrors…".
+  - Success toast includes detection summary line (country/OS/special/redeface/mass/home).
+- Verified outbound network from server: DNS lookup ✓, ip-api.com GeoIP ✓, fetch Server header ✓.
+
+Agent Browser verification:
+- Opened Notify dialog: confirmed only Mode toggle + URL(s) + Attacker + Team (no OS/country/type fields).
+- Single submission: https://example.edu, attacker=AutoDetect, team=TestCrew → POST 201 in 6.3s.
+  API confirms: cc=CA (IP GeoIP), os=Unknown (CDN-fronted), home=True (root path), special=True (.edu TLD), redeface=False, mass=False. ALL CORRECT.
+- Mass submission: 2 URLs (example.edu + example.com), attacker=MassTester → POST 201, 2 records created.
+  API confirms:
+    - example.edu: cc=CA, special=True (.edu), redeface=True (previously submitted), mass=True, home=True ✓
+    - example.com: cc=CA, special=False (.com — correctly NOT special), redeface=True (submitted in earlier test), mass=True, home=True ✓
+- Country flag + Special + Home icons render correctly in the report table for the new entries.
+- Console: no errors. Lint: 0 errors, 0 warnings. Dev log: clean.
+
+Stage Summary:
+- Notify form simplified to just: Mirror type (Single/Mass), URL(s), Attacker, Team.
+- OS, country, Home, Mass, Redeface, Special are ALL auto-detected by the backend:
+  - Country: DNS → IP → ip-api.com GeoIP → ccTLD fallback.
+  - OS: HTTP Server header (IIS→Windows, nginx/apache→Linux, CDN→Unknown).
+  - Special: gov/edu TLD pattern (.gov, .go.id, .ac.id, .gov.vn, .gov.th, .gob.es, .mil, .edu, ...).
+  - Redeface: domain already exists in the archive.
+  - Home: URL path is root.
+  - Mass: user-selected mode with >1 URL.
+- Mass mode supports up to 20 URLs processed concurrently (3 at a time).
+- Verified end-to-end with real captures. No errors, lint clean.

@@ -3,6 +3,14 @@ import ZAI from "z-ai-web-dev-sdk";
 import { db } from "@/lib/db";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { seedIfEmpty } from "@/lib/seed";
+import {
+  detectCountry,
+  detectOs,
+  detectRedeface,
+  isHomeUrl,
+  isSpecialDomain,
+  mapWithConcurrency,
+} from "@/lib/detect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -174,40 +182,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const targetUrlRaw: string =
-      typeof body?.targetUrl === "string" ? body.targetUrl.trim() : "";
     const attacker: string =
       typeof body?.attacker === "string" ? body.attacker.trim() : "";
     const team: string | null =
       typeof body?.team === "string" && body.team.trim() ? body.team.trim() : null;
+    const mode: "single" | "mass" =
+      body?.mode === "mass" ? "mass" : "single";
 
-    if (!targetUrlRaw) {
-      return NextResponse.json({ error: "targetUrl is required" }, { status: 400 });
-    }
     if (!attacker) {
       return NextResponse.json({ error: "attacker is required" }, { status: 400 });
     }
 
-    const parsed = safeParseUrl(targetUrlRaw);
-    if (!parsed) {
-      return NextResponse.json({ error: "Invalid targetUrl" }, { status: 400 });
+    // Collect URLs. Accept either `urls: string[]` (preferred) or a single
+    // `targetUrl: string` for backward compatibility.
+    let rawUrls: string[] = [];
+    if (Array.isArray(body?.urls)) {
+      rawUrls = body.urls
+        .filter((u: unknown) => typeof u === "string")
+        .map((u: string) => u.trim())
+        .filter(Boolean);
+    } else if (typeof body?.targetUrl === "string" && body.targetUrl.trim()) {
+      rawUrls = [body.targetUrl.trim()];
     }
 
-    const os =
-      typeof body?.os === "string" && body.os.trim() ? body.os.trim() : "Unknown";
-    const countryCode =
-      typeof body?.countryCode === "string" && body.countryCode.trim()
-        ? body.countryCode.trim().toUpperCase()
-        : null;
+    if (rawUrls.length === 0) {
+      return NextResponse.json(
+        { error: "At least one target URL is required" },
+        { status: 400 },
+      );
+    }
 
-    const isHome = Boolean(body?.isHome);
-    const isMass = Boolean(body?.isMass);
-    const isRedeface = Boolean(body?.isRedeface);
-    const isSpecial = Boolean(body?.isSpecial);
+    // Cap mass submissions to keep response times reasonable.
+    const MAX_URLS = mode === "mass" ? 20 : 1;
+    const urls = rawUrls.slice(0, MAX_URLS);
 
-    // Determine reporterLevel: if this attacker already exists with a level,
-    // reuse it; ADMIN stays ADMIN if they're `sam`. Otherwise compute from
-    // their existing count.
+    // Determine reporterLevel once: reuse existing attacker's level, ADMIN for
+    // `sam`, otherwise compute from their existing count.
     let reporterLevel = "ROOKIE";
     const existing = await db.defacement.findFirst({
       where: { attacker },
@@ -222,49 +232,104 @@ export async function POST(req: Request) {
       reporterLevel = levelForCount(cnt);
     }
 
-    // Try to fetch the live target page via Z.ai page_reader.
-    let mirrorHtml = "";
-    let captureFailed = false;
-    try {
-      const zai = await ZAI.create();
-      const result = await zai.functions.invoke("page_reader", { url: parsed.url });
-      const data = (result as any)?.data ?? result;
-      const fetchedHtml = (data?.html ?? "").toString();
-      if (fetchedHtml.trim()) {
-        mirrorHtml = sanitizeHtml(fetchedHtml);
-      } else {
+    // Process every URL with limited concurrency. Each URL auto-detects its
+    // own country, OS, special/redeface/home flags, and captures the mirror.
+    const created = await mapWithConcurrency(urls, 3, async (rawUrl) => {
+      const parsed = safeParseUrl(rawUrl);
+      if (!parsed) {
+        return {
+          error: "Invalid URL",
+          targetUrl: rawUrl,
+        } as const;
+      }
+
+      // Auto-detect everything (all run in parallel).
+      const [countryCode, os, isRedeface] = await Promise.all([
+        detectCountry(parsed.domain),
+        detectOs(parsed.url),
+        detectRedeface(parsed.domain),
+      ]);
+      const isSpecial = isSpecialDomain(parsed.domain);
+      const isHome = isHomeUrl(parsed.url);
+      const isMass = mode === "mass" && urls.length > 1;
+
+      // Fetch the live target page via Z.ai page_reader.
+      let mirrorHtml = "";
+      let captureFailed = false;
+      try {
+        const zai = await ZAI.create();
+        const result = await zai.functions.invoke("page_reader", {
+          url: parsed.url,
+        });
+        const data = (result as any)?.data ?? result;
+        const fetchedHtml = (data?.html ?? "").toString();
+        if (fetchedHtml.trim()) {
+          mirrorHtml = sanitizeHtml(fetchedHtml);
+        } else {
+          captureFailed = true;
+        }
+      } catch {
         captureFailed = true;
       }
-    } catch {
-      captureFailed = true;
-    }
 
-    if (captureFailed || !mirrorHtml) {
-      mirrorHtml = syntheticFailedMirror(attacker, team ?? "", parsed.url);
-    }
+      if (captureFailed || !mirrorHtml) {
+        mirrorHtml = syntheticFailedMirror(attacker, team ?? "", parsed.url);
+      }
 
-    const mirrorTitle = `${attacker} — ${parsed.domain}`;
+      const mirrorTitle = `${attacker} — ${parsed.domain}`;
 
-    const created = await db.defacement.create({
-      data: {
-        attacker,
-        team,
-        targetUrl: parsed.url,
-        targetDomain: parsed.domain,
-        os,
-        countryCode,
-        isHome,
-        isMass,
-        isRedeface,
-        isSpecial,
-        reporterLevel,
-        status: "onhold",
-        mirrorHtml,
-        mirrorTitle,
-      },
+      const record = await db.defacement.create({
+        data: {
+          attacker,
+          team,
+          targetUrl: parsed.url,
+          targetDomain: parsed.domain,
+          os,
+          countryCode,
+          isHome,
+          isMass,
+          isRedeface,
+          isSpecial,
+          reporterLevel,
+          status: "onhold",
+          mirrorHtml,
+          mirrorTitle,
+        },
+      });
+
+      return record;
     });
 
-    return NextResponse.json({ defacement: created }, { status: 201 });
+    // Separate successes from invalid-URL skips.
+    const ok = created.filter(
+      (c): c is Exclude<typeof c, { error: string; targetUrl: string }> =>
+        !("error" in c),
+    );
+    const failed = created.filter(
+      (c): c is { error: string; targetUrl: string } => "error" in c,
+    );
+
+    return NextResponse.json(
+      {
+        defacements: ok,
+        skipped: failed,
+        count: ok.length,
+        detected: {
+          // Surface what was auto-detected so the UI can confirm it.
+          sample: ok[0]
+            ? {
+                country: ok[0].countryCode,
+                os: ok[0].os,
+                isHome: ok[0].isHome,
+                isMass: ok[0].isMass,
+                isRedeface: ok[0].isRedeface,
+                isSpecial: ok[0].isSpecial,
+              }
+            : null,
+        },
+      },
+      { status: 201 },
+    );
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message ?? "Internal server error" },

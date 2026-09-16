@@ -5,6 +5,7 @@ import type {
   ArchiveFilter,
   DefacementFull,
   NotifyPayload,
+  NotifyResult,
   Stats,
   Defacement,
 } from "./types";
@@ -99,7 +100,8 @@ export function useStats() {
   });
 }
 
-/** Submit a new defacement (Notify). Returns the created onhold record. */
+/** Submit a new defacement (Notify). Returns the created onhold records and
+ *  a summary of what the backend auto-detected. */
 export function useCreateDefacement() {
   const qc = useQueryClient();
   return useMutation({
@@ -113,7 +115,7 @@ export function useCreateDefacement() {
       if (!r.ok) {
         throw new Error((j as any)?.error ?? `Submit failed (${r.status})`);
       }
-      return j as { defacement: DefacementFull };
+      return j as NotifyResult;
     },
     onSuccess: () => {
       // Invalidate all defacement list/stats queries so the new onhold
