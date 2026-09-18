@@ -1,5 +1,14 @@
 import type { NextConfig } from "next";
 
+// Ensure DIRECT_URL defaults to DATABASE_URL if the operator only configured a
+// single connection string. Prisma validates env("DIRECT_URL") at client-init,
+// so without this the build/runtime fails with P1012 when DIRECT_URL is unset.
+// This runs in the Next.js build + server process, so the env var persists for
+// the Prisma Client loaded in serverless functions.
+if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
