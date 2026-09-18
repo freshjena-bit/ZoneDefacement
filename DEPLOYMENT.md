@@ -12,21 +12,33 @@ This guide covers deploying the DefacerID mirror archive to **Vercel**
    users.
 3. Wait for provisioning to finish (~2 min).
 
-## 2. Get your connection string
+## 2. Get your connection strings
 
 In your Supabase dashboard: **Project Settings → Database → Connection string**.
 
-Select the **Session pooler** (port **5432**, host `aws-0-<region>.pooler.supabase.com`).
-This single URL supports both runtime queries AND migrations from Vercel.
+You need **two** URLs — both on `pooler.supabase.com` (IPv4, reachable from Vercel):
 
-> ⚠️ **Do NOT use the direct connection** (`db.xxx.supabase.co:5432`) — it is
-> IPv6-only on new Supabase projects and is unreachable from Vercel's build
+| Variable       | Pooler type | Port | Used for |
+|----------------|-------------|------|----------|
+| `DATABASE_URL` | Transaction pooler (PgBouncer) | 6543 | Runtime serverless queries |
+| `DIRECT_URL`   | Session pooler | 5432 | Migrations (`prisma db push` during build) |
+
+> ⚠️ **Why two URLs?** The session pooler (5432) has a max of 15 concurrent
+> sessions — Vercel serverless exhausts them fast → `EMAXCONSESSION` error.
+> The transaction pooler (6543) with PgBouncer multiplexes connections and
+> handles many more, so it's used for runtime. Migrations need prepared
+> statements (session mode), so they use `DIRECT_URL`.
+>
+> ⚠️ **Do NOT use the direct connection** (`db.xxx.supabase.co`) — it is
+> IPv6-only on new Supabase projects and unreachable from Vercel's build
 > environment (causes `P1001: Can't reach database server`).
 
-The URL looks like:
+The URLs look like:
 ```
-postgresql://postgres.xxxxx:your-password@aws-0-region.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+DIRECT_URL=postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:5432/postgres
 ```
+Append `?pgbouncer=true&connection_limit=1` to the **transaction pooler** URL only.
 
 ## 3. Switch the schema to PostgreSQL
 
@@ -46,7 +58,8 @@ regenerates the Prisma Client. (Switch back anytime with
 Create a `.env` file (or export the vars in your shell):
 
 ```bash
-DATABASE_URL="postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:5432/postgres"
+DATABASE_URL="postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+DIRECT_URL="postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:5432/postgres"
 AUTH_SECRET="a-long-random-secret-string"
 ```
 
@@ -72,9 +85,11 @@ This runs `prisma db push` and creates the `Defacement` table in Supabase.
 4. **Build Command**: leave as default (`bun run build`) — it runs
    `prisma generate && prisma db push --accept-data-loss && next build`
    automatically (creates/updates the Supabase tables on every deploy).
-5. **Environment Variables** — add these four:
-   - `DATABASE_URL` — Supabase **session pooler** URL
-     (`postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:5432/postgres`)
+5. **Environment Variables** — add these five:
+   - `DATABASE_URL` — Supabase **transaction pooler** (port 6543)
+     `postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1`
+   - `DIRECT_URL` — Supabase **session pooler** (port 5432)
+     `postgresql://postgres.xxxxx:PASSWORD@aws-0-region.pooler.supabase.com:5432/postgres`
    - `ADMIN_USERNAME` (your admin username — **override the demo default**)
    - `ADMIN_PASSWORD` (a strong password — **override the demo default**)
    - `AUTH_SECRET` (long random string for signing session tokens)
@@ -114,10 +129,13 @@ The data lives in `db/custom.db`. No external services required.
 
 ## Notes
 
-- **Single DATABASE_URL**: use Supabase's **session pooler** (port 5432 at
-  `pooler.supabase.com`) — it supports both runtime queries and `prisma db push`
-  from Vercel. The direct connection (`db.xxx.supabase.co`) is IPv6-only on new
-  Supabase projects and unreachable from Vercel's build environment.
+- **Two pooler URLs**: runtime queries use the **transaction pooler** (port 6543)
+  with `?pgbouncer=true&connection_limit=1` — PgBouncer multiplexes connections so
+  Vercel serverless doesn't hit the session pooler's 15-session limit
+  (`EMAXCONSESSION`). Migrations use the **session pooler** (port 5432) via
+  `DIRECT_URL` — session mode supports the prepared statements that `prisma db push`
+  needs. Both are on `pooler.supabase.com` (IPv4). The direct connection
+  (`db.xxx.supabase.co`) is IPv6-only and unreachable from Vercel.
 - **Admin credentials** are configured via `ADMIN_USERNAME` / `ADMIN_PASSWORD`
   env vars (set them on Vercel). The HMAC session secret is `AUTH_SECRET`. In
   local dev, these fall back to demo defaults (`GadaLuBau` / `slametwkw`) so

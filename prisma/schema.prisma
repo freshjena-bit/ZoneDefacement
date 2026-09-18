@@ -1,17 +1,32 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema for PRODUCTION (Supabase / PostgreSQL).
+// Use `bun run db:use-postgres` to copy this into prisma/schema.prisma before
+// deploying to Vercel + Supabase.
+//
+// Local development uses SQLite (prisma/schema.sqlite.prisma). Switch back
+// with `bun run db:use-sqlite`.
+//
+// TWO pooler URLs (both on pooler.supabase.com — IPv4, reachable from Vercel):
+//   DATABASE_URL  → TRANSACTION pooler (port 6543, ?pgbouncer=true&connection_limit=1)
+//                   used for runtime serverless queries. PgBouncer multiplexes
+//                   many connections, avoiding the EMAXCONSESSION error that
+//                   the session pooler's 15-session limit causes on Vercel.
+//   DIRECT_URL    → SESSION pooler (port 5432)
+//                   used for migrations (prisma db push) during build. Session
+//                   mode supports prepared statements that migrations need.
+// DO NOT use the direct connection (db.xxx.supabase.co) — IPv6-only, unreachable
+// from Vercel's build environment.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // A single mirrored website defacement record.
-// Modeled after Zone-H-style defacement mirror archives.
 model Defacement {
   id            String   @id @default(cuid())
   attacker      String
@@ -24,7 +39,7 @@ model Defacement {
   isMass        Boolean  @default(false)
   isRedeface    Boolean  @default(false)
   isSpecial     Boolean  @default(false)
-  reporterLevel String   @default("ROOKIE") // ADMIN | LEGEND | ELITE | PRO | ROOKIE
+  reporterLevel String   @default("ROOKIE") // LEGEND | PRO | ELITE | ROOKIE
   status        String   @default("approved") // approved | onhold
   mirrorHtml    String
   mirrorTitle   String?
