@@ -1,4 +1,4 @@
-// Shared types for the ZoneDefacement mirror archive UI.
+// Shared types for the DefacerID mirror archive UI.
 
 export type ReporterLevel = "LEGEND" | "PRO" | "ELITE" | "ROOKIE";
 export type DefacementStatus = "approved" | "onhold";

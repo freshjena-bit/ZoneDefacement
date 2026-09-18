@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  // The ZoneDefacement archive is a single-route client app at `/`, but we expose
+  // The DefacerID archive is a single-route client app at `/`, but we expose
   // friendly URL paths (e.g. /leaderboard/attacker, /notify, /archive,
   // /report/:id) by rewriting them all back to `/`. The client reads
   // window.location.pathname to pick the right view, so these URLs work on

@@ -4,7 +4,7 @@ import { isSpecialDomain } from "@/lib/detect";
 
 /**
  * Idempotently seed the database with ~60 realistic synthetic website
- * defacement records (ZoneDefacement mirror archive). Only seeds when the
+ * defacement records (DefacerID mirror archive). Only seeds when the
  * Defacement table is empty. No network calls — all mirror HTML is generated
  * locally so the UI is populated immediately on first run.
  */
@@ -181,7 +181,7 @@ function buildMirrorHtml(opts: {
 <p style="color:#aaa;font-size:16px;">${teamLine}</p>
 <hr style="border:0;border-top:1px solid #333;margin:30px auto;width:60%;">
 <p style="color:#888;font-size:14px;">Your security is a joke.<br/>Patch your system before someone worse shows up.</p>
-<p style="color:#555;font-size:12px;margin-top:40px;">Mirrored by ZoneDefacement — Defacement Archive</p>
+<p style="color:#555;font-size:12px;margin-top:40px;">Mirrored by DefacerID — Defacement Archive</p>
 </div></body></html>`;
 }
 

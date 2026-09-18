@@ -173,7 +173,7 @@ export async function detectOs(url: string): Promise<string> {
       method: "GET",
       redirect: "follow",
       signal: ctrl.signal,
-      headers: { "User-Agent": "ZoneDefacement-Mirror/1.0 (+archive)" },
+      headers: { "User-Agent": "DefacerID-Mirror/1.0 (+archive)" },
     });
     clearTimeout(t);
     const server = (res.headers.get("server") ?? "").toLowerCase();

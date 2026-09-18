@@ -53,7 +53,7 @@ export function HomeView({
       <section className="rounded-xl border border-stone-200 bg-gradient-to-br from-white to-stone-50 p-6 shadow-sm dark:border-stone-800 dark:from-stone-900 dark:to-stone-950 sm:p-10">
         <div className="mx-auto max-w-3xl text-center">
           <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-wider text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400">
-            <Bug className="size-3" /> ZONEDEFACEMENT MIRROR ARCHIVE
+            <Bug className="size-3" /> DEFACER ID MIRROR ARCHIVE
           </p>
           <h1 className="text-2xl font-extrabold tracking-tight text-stone-900 dark:text-white sm:text-4xl">
             Global Defacement Mirror Archive

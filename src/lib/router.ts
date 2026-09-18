@@ -1,7 +1,7 @@
 import type { ArchiveFilter, ViewName } from "@/components/zone/types";
 
 /**
- * URL ↔ view mapping for the ZoneDefacement archive.
+ * URL ↔ view mapping for the DefacerID archive.
  *
  * The app is a single Next.js route at `/`, but we expose friendly URL paths
  * (rewritten back to `/` in next.config.ts). The client reads

@@ -14,28 +14,28 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ZoneDefacement — Global Defacement Mirror Archive",
+  title: "DefacerID — Global Defacement Mirror Archive",
   description:
-    "ZoneDefacement is a global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
+    "DefacerID is a global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
   keywords: [
-    "ZoneDefacement",
+    "DefacerID",
     "defacement mirror",
-    "zonedefacement",
+    "defacerid",
     "web defacement",
     "defacement archive",
     "mirror database",
   ],
-  authors: [{ name: "ZoneDefacement" }],
+  authors: [{ name: "DefacerID" }],
   openGraph: {
-    title: "ZoneDefacement — Global Defacement Mirror Archive",
+    title: "DefacerID — Global Defacement Mirror Archive",
     description:
       "A global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
-    siteName: "ZoneDefacement",
+    siteName: "DefacerID",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ZoneDefacement — Global Defacement Mirror Archive",
+    title: "DefacerID — Global Defacement Mirror Archive",
     description:
       "A global defacement mirror database tracking verified web defacements, attacker rankings, and incident evidence.",
   },

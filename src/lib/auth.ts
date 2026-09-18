@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 /**
- * Minimal admin authentication for the ZoneDefacement archive.
+ * Minimal admin authentication for the DefacerID archive.
  *
  * Admin credentials are read from environment variables (ADMIN_USERNAME /
  * ADMIN_PASSWORD) so they never live in source code. In local development
@@ -32,11 +32,11 @@ function adminPassword(): string {
 function secret(): string {
   return (
     process.env.AUTH_SECRET ||
-    "zonedefacement-archive-hmac-secret-please-override-in-prod"
+    "defacerid-archive-hmac-secret-please-override-in-prod"
   );
 }
 
-export const SESSION_COOKIE_NAME = "zonedefacement_session";
+export const SESSION_COOKIE_NAME = "defacerid_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 export interface Session {

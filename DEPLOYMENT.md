@@ -1,6 +1,6 @@
-# Deploying ZoneDefacement to Vercel + Supabase
+# Deploying DefacerID to Vercel + Supabase
 
-This guide covers deploying the ZoneDefacement mirror archive to **Vercel**
+This guide covers deploying the DefacerID mirror archive to **Vercel**
 (hosting) with **Supabase** (PostgreSQL database).
 
 ---

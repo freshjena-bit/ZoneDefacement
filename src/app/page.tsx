@@ -147,7 +147,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
+    <div className="flex min-h-screen flex-col bg-stone-950 text-stone-100 dark:bg-stone-950 dark:text-stone-100">
       <Topbar onSearch={handleSearch} onNavigate={handleNavigate} />
 
       <main className="flex-1">

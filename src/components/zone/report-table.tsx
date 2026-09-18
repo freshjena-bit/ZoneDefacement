@@ -166,7 +166,7 @@ export function ReportTable({
   return (
     <>
       {/* Single table layout for ALL screen sizes — horizontally scrollable
-          so mobile users can swipe to see every column (matches ZoneDefacement). */}
+          so mobile users can swipe to see every column (matches DefacerID). */}
       <div className="w-full overflow-x-auto thin-scrollbar">
         <table className="w-full min-w-[920px] border-collapse text-sm">
           <thead className="sticky top-0 z-10 bg-stone-100 dark:bg-stone-900">

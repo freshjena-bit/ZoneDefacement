@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /**
- * Reporter level logic for the ZoneDefacement archive.
+ * Reporter level logic for the DefacerID archive.
  *
  * A reporter's level is derived purely from the number of VERIFIED (approved)
  * defacements they have in the archive. On-hold / pending submissions do NOT
